@@ -7,7 +7,7 @@
 > ## 大前端
 
 [vue响应式数据](note/frontend/vue响应式数据.md)  
-[你不知道的javascript学习记录](note/frontend/YDKJS-作用域闭包.md)
+[你不知道的javascript学习-作用域和闭包](note/frontend/YDKJS-作用域闭包.md)
 
 > ## 浏览器
 
