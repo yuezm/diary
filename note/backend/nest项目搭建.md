@@ -1,8 +1,8 @@
 ## 为什么使用 Nest
 
-- typescript 友好
-- 生态良好，工具开箱即用，例如如 GraphQL 和 gRPC 等
-- 项目分层更加细致，更容易维护
+- 完美支持 typescript（为何要使用typescript）
+- 生态良好，支持express 和 fastify 两种框架
+- 面向AOP编程
 - 尝试其他 node 企业级框架，原来用的 egg.js
 
 ## Nest 初始化及项目目录改造
@@ -49,7 +49,7 @@ $ nest new project-name
 ### 缓存
 
 - 由 `src/provider/interceptor/http.cache.interceptor.ts` 维护
-- 缓存所有 get 方法的数据，存储于 redis 中(使用 nest 自带 CacheInterceptor)
+- 缓存指定资源，存储于 redis 中(使用 nest 自带 CacheInterceptor)
 - 自定义缓存key值，根据 请求参数和请求用户来缓存数据
 
 ## 数据库
