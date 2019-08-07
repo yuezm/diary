@@ -1,26 +1,17 @@
-## 为什么使用 Nest
-
-- 完美支持 typescript（为何要使用typescript）
-- 生态良好，支持express 和 fastify 两种框架
-- 面向AOP编程
-- 尝试其他 node 企业级框架，原来用的 egg.js
-
-## Nest 初始化及项目目录改造
+## Nest 初始化
 
 ### 使用 Nest CLI 构建项目
 
 ```
 $ npm i -g @nestjs/cli
-$ nest new project-name
+$ nest new nest-example
 ```
 
 ### 项目目录拆分
 
-![](../images/nest-directory.png)
-
 ### 简单架构图
 
-![](../images/nest-arch.png)
+![](http://public.keven.work/nest-arch.png)
 
 ## 基础配置
 
@@ -33,13 +24,13 @@ $ nest new project-name
 ### 日志
 
 - 引入 winston 包，由 `src/provider/service/log.service.ts` 维护
-- 日志目录由 LOG_PATH 环境变量维护，开发环境为项目目录，测试、生产环境由 `Dockerfile ENV LOG_PATH` 指定
-- 日志按天切割，日志格式为 `YYYY-MM-DD HH:mm:ss [${level}] ${message}` [(winston 如何切割日志)](winson打印日志.md)
+- 日志路径由 \$LOG_PATH 环境变量维护，开发环境默认配置为当前项目，测试、生产环境由 Dockerfile 文件 `ENV LOG_PATH` 指定
+- 日志按天切割，日志格式为 `YYYY-MM-DD HH:mm:ss [${level}] ${message}` [(winston 如何打印日志)](winson打印日志.md)
 
 ### 认证
 
 - 由 `src/provider/guards/auth.guards.ts`维护
-- 根据传递 token 查询 redis，未登录则抛出 401，否则进入下一步骤
+- 基于 jwt，未登录时抛出 401，登录则进入下一步骤
 
 ### 安全
 
@@ -49,14 +40,13 @@ $ nest new project-name
 ### 缓存
 
 - 由 `src/provider/interceptor/http.cache.interceptor.ts` 维护
-- 缓存指定资源，存储于 redis 中(使用 nest 自带 CacheInterceptor)
-- 自定义缓存key值，根据 请求参数和请求用户来缓存数据
+- 缓存指定资源，存储于 redis 中(使用的是 nest 自带 CacheInterceptor)，例如可以缓存对于每个用户都相同的数据
+- 自定义缓存 key 值，根据 请求参数和请求用户来缓存数据
 
 ## 数据库
 
 - 引入 redis 包，由 `src/provider/service/redis.service.ts` 维护
-- redis 保存用户 token, 在认证层校验
-- redis 保存用户 get 请求数据，在缓存层维护
+- redis 缓存指定资源
 
 ## gRPC
 
@@ -70,4 +60,4 @@ gRPC 远程调用 go 微服务
 
 - 使用 node:10-apline 镜像构建 node docker 镜像
 - 镜像名称为 $npm_package_name, 版本为 $npm_package_version  
-[node 构建docker镜像](node-docker构建.md)
+  [node 构建 docker 镜像](node-docker构建.md)

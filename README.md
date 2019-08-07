@@ -9,7 +9,7 @@
 [node 构建 docker 镜像](note/backend/node-docker构建.md)
 
 ## 大前端
-[javascript浮点数，为什么0.1+0.2!==0.3](note/frontend/javascript/javascript浮点数.md)
+[javascript浮点数](note/frontend/javascript/javascript浮点数.md)  
 [vue 响应式数据](note/frontend/vue响应式数据.md)  
 [你不知道的 javascript 学习-作用域和闭包](note/frontend/javascript/YDKJS-作用域闭包.md)  
 [性能优化](note/frontend/性能优化.md)
