@@ -31,7 +31,7 @@ app.listen(8080);
 
 ## 开始构建 docker
 
-### 编写 package.json
+### 新建命令
 
 在 package.json 文件中，增加如下
 

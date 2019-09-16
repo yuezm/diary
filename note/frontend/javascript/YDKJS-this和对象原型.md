@@ -1,199 +1,133 @@
-# 你不知道的 Javascript(上卷) 作用域和闭包
+# this 和 对象
 
-![](http://public.keven.work/javascriot-scope-xmind.png)
+## this
 
-## 作用域
+在 JavaScript 中，this 是在运行时绑定的，而非在编译时。所以 this 与函数在何处声明没有关系，取决于函数调用方式。简单来说就是**谁调用了函数，this 指向谁**
 
-作用域：负责收集和维护声明标识符组成的一些列查询，并根据严苛的规则，确定当期执行代码对标识符的访问权限的程序。
+### this 的绑定及优先级顺序
 
-### 作用域简介
-
-作用域一般分为 `动态作用域` 和 `词法作用域`，**javascript 作用域为词法作用域**，javascript 的作用域在书写代码时已经决定了，且 javascript 还有欺骗词法作用域的方法（例如 width eval）
-
-词法作用域: 在`词法解析`时确定作用域。词法作用域的决定因素在书写嵌套，后续一般不会改变 （`欺骗作用域`例外）
-
-词法解析存在于编译阶段，一般来说编译分为 3 个步骤：
-
-1. _词法解析_: 将源代码解析为`词法单元流`,是由`词法单元组成的数组`。词法解析一般还包含对单词的检查、优化等,如果是有状态的解析，则会赋予单词意义；
-2. _语法解析_: 将词法单元流转换为 AST；
-3. _代码生成_：将 AST 转换为可执行代码；
-
-但 javascript 与其他编译型语言不同，它编译不是在构建当中，而是在执行前几毫秒内完成编译及优化；
-
-在 javascript 中，作用域主要承担两个职责：
-
-- 收集并维护声明标识符、查询标识符
-- 根据严格规则，定义标识符的作用范围
-
-### 作用域、编译器、Javascript 引擎的交互
-
-在代码编译阶段和执行阶段，编译器和引擎都会和作用域交互，大致交流流程图如下：  
-_ps: 引擎是指负责整个 javascript 代码编译及执行的，即引擎是包含编译器的。但是在此处将他们分开解释，以便于理解_
-
-![](https://public.keven.work/javascript-engine-scope.jpg)
-
-举个例子，按照如下示例代码解释流程
+#### new 绑定
 
 ```
-var a = 2;
-var a = 3;
-var b = a;
-```
-
-在编译阶段(预解析)：
-
-- 编译器 **询问** 作用域：当前作用域下是否存在 a 变量；
-- 作用域 **回答** 编译器：不存在，我创建一个变量 a;
-- ... 编译器继续编译 ...；
-- 编译器 **询问** 作用域：当前作用域下是否存在 a 变量；
-- 作用域 **回答** 编译器：已经存在了；
-- ... 编译器继续编译 ...；
-- 编译器 **询问** 作用域：当前作用域下是否存在 b 变量；
-- 作用域 **回答** 编译器：不存在，我创建一个变量 b;
-
-**如果是函数声明语句，编译器还会处理函数声明值；而其他声明，则只处理变量**
-
-该阶段后，作用域已经确定，进入代码执行阶段，由 javascript 引擎执行
-
-在引擎执行阶段：
-
-LHS
-
-- 引擎 **询问** 作用域：你有 a 这个变量吗
-- 作用域 **回答** 引擎：有啊，给你 a
-- 引擎将 a 赋值为 2
-
-LHS
-
-- 引擎 **询问** 作用域：你有 a 这个变量吗
-- 作用域 **回答** 引擎：有啊，给你 a
-- 引擎将 a 赋值为 3
-
-RHS
-
-- 引擎 **询问** 作用域：你知道 a 的值吗？；
-- 作用域 **回答** 引擎：知道啊，他的值是 3；
-
-LHS
-
-- 引擎 **询问** 作用域：你有 b 这个变量吗
-- 作用域 **回答** 引擎：有啊，给你 b
-- 引擎将 b 赋值为 3
-
-### 作用域类型
-
-Javascript 中，作用域分为全局作用域和局部作用域。
-
-#### 全局作用域
-
-全局作用域在整个运行环境中，只存在一个，浏览器为 window, node 为 global。任何作用域都可以访问全局作用域
-
-#### 函数作用域
-
-函数作用域为局部作用域一种，存在于函数内部，外部无法访问函数内部变量
-
-#### 块级作用域
-
-在 ES6 中，出现的新的作用域，该作用域出现的两个条件：
-
-- 由大括号包裹
-- 变量由 let const 声明
-
-#### 中间作用域
-
-在 ES6 中，出现的新的作用域，该作用域出现的条件：
-
-- 函数参数存在默认值
-
-```
-// 第一个例子
-let x = 1;
-function test(x, y = function () { x = 2 }) {
-  console.log(x);
-  var x = 3;
-  y();
-  console.log(x);
+function Person(name, age) {
+  this.name = name;
+  this.age = age;
 }
-test(666);
-console.log(x); // y函数执行后，修改中间作用域x值，而不会修改函数内部x值，也不会修改全局x的值
-// 打印结果为  666 3 1
+new Person('Tom', 12);
 ```
 
+在 JavaScript 中，new 和传统的面向对象语言是有所区别的  
+例如 C++中
+
+- 构造函数是一个特殊函数，且属于该类
+- 构造函数与类同名
+- 在实例化类时，会调用该特殊函数
+
+而在 JavaScript 中
+
+- 构造函数并不属于某个类，它是一个单独的函数，可以说任意一个函数都可以作为构造函数
+- new 的作用也不是实例化类，事实上，JavaScript 中没有类这个概念，new 仅仅是**构造调用**该函数，如以下步骤实现：
+
+**构造调用**
+
+1. 创建一个新的对象
+2. 将该对象绑定到"构造函数"中的 this 上
+3. 将该对象连接"构造函数"的原型
+4. 如果"构造函数"返回值为对象，则返回值为该对象，否则为 this
+
+#### 显示绑定 call、apply、bind
+
+显示绑定 this，使优先级低于显示绑定的都无效。
+
 ```
-// 第二个例子
-let x = 1;
-function test(y = function () { x = 2 }) {
-  console.log(x);
-  var x = 3;
-  y();
-  console.log(x);
+function.call(thisArg, arg1, arg2, ...)
+function.apply(thisArg, [arg1, arg2, ...])
+function.bind(thisArg, arg1, arg2, ...)
+```
+
+tips：
+
+- **请注意，如果 thisArg 为 undefined、null 时，将应用其他规则**
+- bind 函数也适用 new 运算符，但是 thisArg 将无效，而参数是有效的，例如
+
+```
+function Person(name, age) {
+  this.name = name;
+  this.age = age;
 }
-test();
-console.log(x); // y函数执行后，修改全局x
-// 打印结果为  undefined 3 2
+
+Person.prototype.show = function name(params) {
+  console.log(this.name, this.age);
+}
+
+const Tom = Person.bind({}, "Tom", 12);
+new Tom().show(); // Tom 12
 ```
 
-函数在参数存在默认值时，会定义一个中间作用于来存储参数，该作用于不与函数作用域共享
+#### 隐式绑定
 
-### 变量提升
-
-在作用域内，将变量声明和函数声明提到`当前作用域顶部`，且函数声明要优先于变量声明
-
-#### 变量声明 vs 函数声明
-
-函数声明 的变量提升优先于 变量声明，且函数声明在编译阶段就会处理值，所以 LHS 模型不适用于函数声明
-
-#### var vs let 和 const
-
-var 和 let const 都会导致变量提升，这是 javascript 的特性。但是由 let/const 声明的变量存在`time dead zone`,在声明前使用会抛出错误  
-因为变量声明分为两步：`创建变量、词法绑定`。由 var 声明时创建变量、词法绑定同时完成；而 let/const 声明的变量在编译阶段只是创建变量，并未进行词法绑定，词法绑定在赋值语句完成, 所以在使用时会抛出引用错误
-
-### 欺骗作用域
-
-~~不建议使用~~
+函数被对象调用，或调用处存在上下文对象
 
 ```
-width(xx){}
-eval(xx)
-```
-
-width：将对象处理为词法作用域，在严格模式下禁止使用  
-eval: 插入当前作用域，严格模式下创建新的作用域
-
-width 和 eval 存在性能问题，因为引擎在编译阶段会对源代码进行优化，其中某些优化需要静态分析，预先确定函数、变量的位置才能完成。而 with 和 eval 都无法静态分析确认
-
-## 闭包
-
-闭包：函数记住当前词法作用域，即使函数在当前作用域外执行时，也能访问该作用域。  
-闭包时基于词法作用域书写代码的必然结果
-
-### 基于函数作用域来描述 作用域和闭包
-
-```
-const s = 1;
-function a(){
-  const s = 2;
-
-  function b(){
-    const s_b = s;
+const Tom = {
+  name: 'Tom',
+  show() {
+    console.log(this.name);
   }
-  console.log(b.prototype);
-}
-a();
+};
+Tom.show();
 ```
 
-可以在 google 浏览器中，查看当前作用域/作用域链,如下所示:  
-Google 浏览器 --> F12 --> Console --> 展开 constructor
-![](https://public.keven.work/proto-scope.png)
+#### 默认绑定
 
-### 概念介绍
+无法应用其他规则时，则为默认绑定
 
-动态作用域：在运行时决定作用域，即动态作用域决定性因素在调用栈，而词法作用域决定因素在书写嵌套；  
-词法单元: 将语句解析为有意义的单词，如 var a = 2;解析后为 \[ var, a, =, 2, ; \](伪代码)；  
-LHS: left-hand-side，赋值操作左侧，指向谁赋值，简单理解为等号左边；  
-RHS: right-handle-side,赋值操作右侧，指取谁的值，简单理解为等号右边；
+```
+function Person(name, age) {
+  this.name = name;
+  this.age = age;
+}
 
-## 参考
+Person();
+```
 
-[ES6: Default values of parameters](http://dmitrysoshnikov.com/ecmascript/es6-notes-default-values-of-parameters/)  
-《你不知道的 JavaScript 上卷》
+#### 箭头函数
+
+箭头函数是一种特殊的函数
+
+- 箭头函数没有自身的 this，是按照词法作用域来决定
+- 箭头函数没有原型
+- 箭头函数不能 使用 new 调用
+
+## 对象
+
+Javascript 存在 7 中数据类型 string、number、boolean、null、undefined、symbol、object，除去 object 外都为基本类型，object 为复杂类型。
+
+### 属性和方法
+
+通常来说 对象的 Key 值为函数称为方法，非函数称为属性
+
+### 属性描述符
+
+```
+Object.defineProperty(target, propertyKey, attributes)
+```
+
+描述符分为两组
+
+**共享可选键**
+
+- configurable：是否可修改该属性的描述符和是否可删除该属性，默认 false
+- enumerable：是否可遍历该属性，默认 false
+
+tips：**即便属性是 configurable:false， 我们还是可以，把 writable 的状态由 true 改为 false， 但是无法由 false 改为 true**
+
+**互斥可选键**
+
+- writable：是否可通过赋值运算修改该属性值，默认 false
+- value：属性值，默认 undefined
+
+---
+
+- get：返回值作为该属性的值，默认 undefined
+- set：赋值属性时，将调用该函数，默认为 undefined
