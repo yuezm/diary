@@ -343,7 +343,7 @@ _超标量_：CPU 一个时钟周期运行超过一条指令
 
 在 Preferences => Language and Framework => Javascript => Webpack 下配置如下路径
 
-_\<project_path>/node_modules/@vue/cli-service/webpack.config.js _
+<project_path>/node_modules/@vue/cli-service/webpack.config.js
 
 [vue-cli 官方文档](https://cli.vuejs.org/zh/guide/webpack.html#%E4%BB%A5%E4%B8%80%E4%B8%AA%E6%96%87%E4%BB%B6%E7%9A%84%E6%96%B9%E5%BC%8F%E4%BD%BF%E7%94%A8%E8%A7%A3%E6%9E%90%E5%A5%BD%E7%9A%84%E9%85%8D%E7%BD%AE)
 
@@ -430,8 +430,36 @@ page.onResourceReceived = function name() { } // 请求资源有返回
 
 ## 算法题
 
-**三色问题**
+### 三色问题
 
+[leetcode-荷兰三色问题](https://leetcode-cn.com/problems/sort-colors/)
 存在三种颜色，0，1，2，现在有乱序数组全部是由三种颜色组成，请排序。1、时间复杂度为 O(N)
 
-- 快速排序
+- 快速排序 (三向切分，只循环一次)
+
+```
+void sortColors(vector<int>& nums) {
+  int lf = 0, ri = nums.size() - 1;
+  int base_value = 1;
+  int i = 0;
+
+  while (i <= ri) {
+    if (nums[i] < base_value) {
+      int s = nums[i];
+      nums[i] = nums[lf];
+      nums[lf] = s;
+
+      i++;
+      lf++;
+    } else if (nums[i] == base_value) {
+      i++;
+    } else {
+      int s = nums[i];
+      nums[i] = nums[ri];
+      nums[ri] = s;
+
+      ri--;
+    }
+  }
+}
+```
