@@ -428,6 +428,66 @@ page.onResourceReceived = function name() { } // 请求资源有返回
 
 [createElementNS MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/Document/createElementNS)
 
+### c++ 构造函数 和 析构函数
+
+#### 构造函数
+
+在函数实例化时执行的函数
+
+```
+// --------- 普通类 ---------
+class Test{
+  public:
+    Test();
+}
+
+Test::Test(){
+  // 这里可以干点啥
+}
+
+// --------- 模板类 ---------
+template <class T>
+class Test{
+  public:
+    Test();
+}
+
+template<typename T>
+Test<T>::Test(){
+
+}
+
+```
+
+#### 析构函数
+
+```
+// --------- 普通类 ---------
+class Test{
+  public:
+    ~Test();
+}
+
+Test::~Test(){
+  // 这里可以干点啥
+}
+
+// --------- 模板类 ---------
+template <class T>
+class Test{
+  public:
+    ~Test();
+}
+
+template<typename T>
+Test<T>::~Test(){
+
+}
+
+```
+
+在实例化对象销毁时执行的函数
+
 ## 算法题
 
 ### 三色问题
