@@ -1,6 +1,6 @@
 # 9 月第一周
 
-## 排序
+## 算法
 
 ### 选择排序
 
@@ -337,7 +337,7 @@ _超标量_：CPU 一个时钟周期运行超过一条指令
 
 一条指令运行多条数据，例如在浮点数运算的优化
 
-## 其他
+## Javascript
 
 ### vue-cli 生成的项目 webstorm 无法读取 alias
 
@@ -415,6 +415,21 @@ page.onResourceReceived = function name() { } // 请求资源有返回
 - 一些语法错误，phantom.onError 无法捕捉到，例如 **箭头函数**，此时 phantomjs 不运行也不报错
   ，很尴尬
 
+**ubuntu 安装 phantomjs 后，运行报错**
+
+```
+QXcbConnection: Could not connect to display
+PhantomJS has crashed. Please read the bug reporting guide at
+http://phantomjs.org/bug-reporting.html and file a bug report.
+Aborted
+```
+
+问题原因：无法找到 QT 的路径
+
+解决办法：`echo -e "export QT_QPA_PLATFORM=offscreen \nexport QT_QPA_FONTDIR=/usr/share/fonts" >> /usr/bin/phantomjs`
+
+## c++
+
 ### c++ 数组初始化
 
 1. 静态初始化 `int arr[10] = {0}`
@@ -488,7 +503,7 @@ Test<T>::~Test(){
 
 在实例化对象销毁时执行的函数
 
-## 算法题
+## leetcode
 
 ### 三色问题
 
