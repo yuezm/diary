@@ -347,17 +347,6 @@ _超标量_：CPU 一个时钟周期运行超过一条指令
 
 [vue-cli 官方文档](https://cli.vuejs.org/zh/guide/webpack.html#%E4%BB%A5%E4%B8%80%E4%B8%AA%E6%96%87%E4%BB%B6%E7%9A%84%E6%96%B9%E5%BC%8F%E4%BD%BF%E7%94%A8%E8%A7%A3%E6%9E%90%E5%A5%BD%E7%9A%84%E9%85%8D%E7%BD%AE)
 
-### mac 修改 app 快捷键
-
-在 System Preferences => Keyboard => Shortcuts => App Shortcuts
-点击 "+" 号，选择你想设置的 Application 和 Keyboard Shortcut
-
-例如，我将谷歌的 History back 设置为 "cmd + ["
-
-1.  Application 点击选择 **Google Chrome**
-2.  输入 Menu Title **Back**，这里需要注意，<font color="red">Menu Title 必须和应用软件的 Menu Title 保持一致</font>
-3.  在 Keyboard Shortcut 同时按下 **cmd + [**
-
 ### 编码
 
 [Javascript 常用的编码及乱码问题](../../note/coding/ASCII_Unicode_GBK.md)
@@ -428,6 +417,11 @@ Aborted
 
 解决办法：`echo -e "export QT_QPA_PLATFORM=offscreen \nexport QT_QPA_FONTDIR=/usr/share/fonts" >> /usr/bin/phantomjs`
 
+### createElement createElementNS
+
+1. createElement: 无命名空间创建元素
+2. createElementNS：有命名空间的创建元素(没使用过)
+
 ## c++
 
 ### c++ 数组初始化
@@ -435,11 +429,6 @@ Aborted
 1. 静态初始化 `int arr[10] = {0}`
 2. 动态初始化 `int *arr = new int[10]{0}`
 3. vector 初始化 `vector<int> arr = {}; vector<int> arr1(10,0)`
-
-### createElement createElementNS
-
-1. createElement: 无命名空间创建元素
-2. createElementNS：有命名空间的创建元素(没使用过)
 
 [createElementNS MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/Document/createElementNS)
 
@@ -538,3 +527,16 @@ void sortColors(vector<int>& nums) {
   }
 }
 ```
+
+## 其他
+
+### mac 修改 app 快捷键
+
+在 System Preferences => Keyboard => Shortcuts => App Shortcuts
+点击 "+" 号，选择你想设置的 Application 和 Keyboard Shortcut
+
+例如，我将谷歌的 History back 设置为 "cmd + ["
+
+1.  Application 点击选择 **Google Chrome**
+2.  输入 Menu Title **Back**，这里需要注意，<font color="red">Menu Title 必须和应用软件的 Menu Title 保持一致</font>
+3.  在 Keyboard Shortcut 同时按下 **cmd + [**
