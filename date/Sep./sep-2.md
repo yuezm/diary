@@ -296,3 +296,5 @@ int leastInterval(vector<char>& tasks, int n) {
       return max(int(tasks.size()), (max_count - 1) * (n + 1) + task_sum);
     }
 ```
+
+**该周 CSAPP 中汇编章节兴趣不大，就初略的看了下**
