@@ -39,7 +39,8 @@ sr.appendChild("<div></div>");
 
 ### Javascript 引擎（V8）
 
-后续了解 node 源码时才了解，没有理解到
+后续了解 node 源码时才了解，没有理解到，下图是 v8 的引擎结构图（待了解）
+![](../../static/images/Javascript_engine.png)
 
 ### Form javascript 原生验证
 
@@ -109,6 +110,7 @@ movl 2字指令
 movq 4字指令
 
 如  movq %rax %rdi
+    movq %rax 16(%rdi,%rax)
 ```
 
 **指令的字数必须与寄存器地址保持一致**
@@ -129,7 +131,7 @@ movq 4字指令
 
 ```
 如 incq %rax
-   add1 %2 $rax
+   add1 $2 %rax
 ```
 
 #### 一元、二元操作指令
@@ -137,7 +139,7 @@ movq 4字指令
 ```
 ++ : incq %rax
 
-+= : add1 %2 $rax
++= : add1 $2 %rax
 ```
 
 ## leetcode
