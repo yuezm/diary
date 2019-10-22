@@ -17,47 +17,47 @@
 
 ### import() 加载数据流
 
+1. import 可以动态加载模块
+
+```
+import("./index.js"); // 返回的Promise
+```
+
+2. import 加载数据流
+
+url 数据流: "data:[<mediaType>][;base64],<data>"；例如 "data:text/javascript;chartset-utf-8,console.log('HELLO WORd')"
+
+import("data:text/javascript;chartset-utf-8,console.log('HELLO WORd')"); // 打印 HELLO WORD，类似 eval 功能
+
 ### encodeURI encodeURIComponent
+
+共同点：都是将字符串转换为统一资源定位符（URL）
+
+不同点：
+
+1. encodeURI：转换为 url 编码
+
+   无法转义的字符：
+
+- 保留字符：; , / ? : @ & = + \$
+- 非转义字符：字母 数字 - \_ . ! ~ \* ' ( )
+- 数字符号：#
+
+2. encodeURIComponent：转换 url 编码
+
+   无法转义的字符：
+
+- 字母、数字、(、)、.、!、~、\*、'、-和\_
 
 ### TS
 
-1. TS 结构化类型特点
-2. TS 函数参数特点 不赋值，void 返回值问题
-3. 空接口特点
-4. 类成员一致性的问题 private protected
+1. TS 结构化类型特点：结构类型和其他强类型语言不一致，`如果类中成员一致，也认为两个类型相同`，但是如果类含有`private protected`，则认为不一致，即使两个类成员完全相同
+2. TS 函数参数特点 不赋值，void 返回值问题：声明返回值的函数可以赋值给 void 类型函数，理解为`当函数声明为 void 时，赋值时不会对返回值进行校验`
+3. 空接口特点：空接口匹配一切类型（never 除外）
 
 ## 网络
 
 ## Linux
-
-## 算法
-
-### 帮助命令
-
-1. man
-2. whatis
-3. info
-4. which
-5. whereis
-
-### 文件命令
-
-1. mkdir
-2. vi，vim，touch
-3. rm
-4. mv
-5. cp
-6. wc
-7. ls
-8. find
-9. locate
-10. head
-11. tail
-12. diff
-13. egrep
-14. chmod
-15. chown
-16. ln
 
 ## 其他
 
