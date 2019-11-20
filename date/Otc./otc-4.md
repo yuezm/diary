@@ -239,10 +239,6 @@ function sort(strNums, n) {
   // 从后往前排 !!!!
   const R = 257;
   let storeArr = [];
-
-  for (let c = n - 1; c >= 0; c--) {
-    const count = [];
-
     // 计算频率
     for (const item of originData) {
       const code = item[c].charCodeAt(0) + 1;
