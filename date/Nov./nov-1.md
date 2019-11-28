@@ -2,6 +2,117 @@
 
 ## Javascript
 
+### for...await...of
+
+在 for 循环中使用 await，可以遍历异步可迭代结构，`内部 Promise 为并行，而非串行`
+
+```
+const p = [
+  new Promise(resolve => {
+    setTimeout(() => {
+      resolve('OK1');
+    }, 2000);
+  }),
+  new Promise(resolve => {
+    setTimeout(() => {
+      resolve('OK2');
+    }, 1000);
+  }),
+];
+
+
+(async function name(params) {
+  for await (const item of p) {
+    console.log(item);
+  }
+})();
+```
+
+## Typescript
+
+### enum
+
+特点：对于值为数字枚举，会互相映射，如果为值为字符串，则类似于对象，**不会互相映射**
+
+```
+// 数字枚举
+enum E1 {
+  e1,
+  e2,
+}
+//转换为JS
+const E1 = {
+  [E1["e1"]=0]: "e1",
+  [E1["e2"]=1]: "e2",
+}
+
+// 字符串枚举
+enum E1 {
+  e1 = "E1",
+  e2 = "E2",
+}
+//转换为JS
+const E1 = {
+  "e1":"E1",
+  "e2":"E2",
+}
+```
+
+## Node
+
+### 模块机制
+
+#### CommonJS
+
+1. 以 require 加载模块
+2. 以 module.exports 或 exports 来导出模块
+3. 模块包含于一个函数内，函数参数为 module,exports,\_\_dirname,\_\_filename
+
+### child_process
+
+1. spawn：Node 衍生子进程主方法，其余方法都是 spawn 的衍生
+2. exec：衍生 shell，并在 shell 中执行命令
+3. execFile：可 exec 差不多，但默认不衍生 shell,而直接执行命令
+4. fork：只执行 JS 文件，且自动连接 IPC 管道
+
+#### Node IPC
+
+1. process.stdout 和 process.stdin
+2. IPC 管道  
+   Node 中的 IPC 管道在不同系统不同实现  
+   \*nix 中：Domain Socket 实现
+   windows 中：以命名管道实现
+
+3. socket 实现
+   如 node-rpc 包
+
+4. 消息队列 rsmq
+
+### Buffer
+
+Node 中的 Buffer 就是 TypedArray 的 UInt8Array 的实现，但有细微区别
+
+- buffer.slice() 会在现有 Buffer 上创建，而非拷贝（<font color="red">和数组表现不一致，千万小心）</font>
+- arrayBuffer.slice() 会创建切片的拷贝
+
+```
+const a1 = Buffer.alloc(10);
+const a2 = a1.slice();
+
+const b1 = new Uint8Array(10);
+const b2 = b1.slice();
+
+a1[ 0 ] = 10;
+console.log(a2[ 0 ]);// 10
+
+b1[ 0 ] = 10;
+console.log(b2[ 0 ]); // 0
+```
+
+**Buffer 可以转换为 ArrayBuffer，但只是拷贝而不是共享**
+
+**且在新版 Node 中，出去不安全初始化 Buffer，所有 Buffer 申请空间后，值都为 0**
+
 ## C++
 
 ## 网络
@@ -90,7 +201,7 @@ TCP 属于`停等协议`，即在未得到确认之前不会接收上层数据�
 3. 无法确定报文合适发送，从上层接收的数据存储在`发送缓存`中，在适当的时候 TCP 从发送缓存中取出数据发送
 4. 首部较大，20 字节
 
-`应用层 => 发送缓存 => 数据报 ... 数据报 => 接收缓存 => 应用层`
+`应用层 => 套接字 => TCP（TCP 发送缓存） => 网络层...网络层 =>TCP（TCP 接收缓存）=> 套接字 => 应用层`
 
 MTU：最大传输数据，目前以太网和 PPP 链路中一般为 1500 字节
 MSS：最大报文段**不包含首部的数据**，一般 TCP/IP 为 40 字节，则 MTU 为 1460 字节
@@ -113,7 +224,7 @@ MSS：最大报文段**不包含首部的数据**，一般 TCP/IP 为 40 字节�
 
 ##### TCP 的可靠数据传输
 
-1. 分组序号：将分组编号，且报文段的序号是`报文首字节的字节流编号`
+1. 分组序号：将分组编号，且报文段的序号是`报文首字节的字节流编号`，<font color="red">不一定都是 0 开始，是有规范控制的</font>
 
    如：50000 字节，MSS 1000，假设初始序号为 0，分组 1=0；分组 2=1000，分组 3=2000；...
 
@@ -140,7 +251,7 @@ MSS：最大报文段**不包含首部的数据**，一般 TCP/IP 为 40 字节�
 
 在 TCP 报文中，存在`接收窗口`,用来抑制发送端，接收窗口表明接收端还能接收多少数据
 
-rwnd(接收窗口数值) = 接收端缓冲区大小 - 已缓存未交给上层的数据大小
+rwdn = Buffer - LastByteRecv - LastByteAck，最大值为 Buffer,最小值为 0
 
 ```
 TCP发送端 发送分组 TCP接收端
@@ -186,13 +297,33 @@ B 端接收报文，并发送确认报文：标志位 ACK=1，ack=seq+1,此时 A
 B 发送报文：FIN=1，seq=最后的传输序号,进入 TIME_WAIT 状态，等待时间为 2MSL
 A 端接收报文，并发送 ACK=1,ack=seq+1，此时 B 端接收到 ACK 后同时断开连接
 
-MSL： 报文最大生命周期
+MSL： 报文最大生命周期，linux 里一个 MSL 为 30s，且不可配置
 
 **为什么需要 TIME_WAIT**
 
 1. 确保发起 FIN 方能接收到 ACK
-2. 报文可能被混淆，其他的连接被当成本次连接使用。所以在 2MSL 内，其他服务无法绑定该端口
+2. 报文可能被混淆，其他的连接被当成本次连接使用。或者说网络较慢下，该报文可能会污染下一次连接的报文，所以在 2MSL 内，其他服务无法绑定该端口
+
+##### 拥塞机制和接收窗口异同
+
+**相同点**
+
+1. 都是对流量的控制
+2. 都是对发送发的抑制
+
+**不同点**
+
+1. 接收窗口是对一个 TCP 连接的抑制；而拥塞机制是对链路层的流量控制
+2. 接收窗口是接收方通过变量来告诉发送方应该放松多少数据；而拥塞机制是根据接收到 ACK、超时等事件来控制
+3. 接收窗口由接收端结算而得，控制权在接收方；拥塞机制控制权在发送方
 
 ## 算法
 
 ## Leetcode
+
+### 找出小于 n 的质数
+
+思路 1：循环 2~n，判断 n 是否为质数，即判断 i<=n 的平方根是否能整除 n
+思路 2：循环 2~n（无需遍历到 n，n 的平方根即可），剔除不是质数的数字，例如（2*2，2*3....,3*2,3*3 等）
+
+[计数质数](https://leetcode-cn.com/problems/count-primes/)
