@@ -273,14 +273,354 @@ e ==> c
 
 **暴力法**
 
+```
+function findPattern(str: string, p: string): boolean {
+  const pLen = p.length;
+
+  for (let i = 0; i < str.length; i++) {
+    let j = 0;
+    for (; j < pLen; j++) {
+      if (str[ j + i ] !== p[ j ]) {
+        break;
+      }
+    }
+
+    if (pLen === j) {
+      return true;
+    }
+  }
+  return false;
+}
+```
+
 **KMP**
+
+关键思路：
+
+1. 计算 next 数组，（计算最长相等的前后缀）
+2. 暴力法中，i 是按照 i++来递增，而 KMP 中，按照 i = i+ max(1,(j+1)-next[j])`递归公式为 i = max(1,已匹配字符串长度 - next[最后一个匹配字符串索引])`
+
+**计算 next 数组**
+
+举个栗子：
+
+```
+模式：ABCABD
+索引        字符串        前缀                     后缀                       最大匹配长度
+0           A            []                       []                          0
+1           AB           [A]                      [B]                         0
+2           ABC          [A,AB]                   [BC,C]                      0
+3           ABCA         [A,AB,ABC]               [BCA,CA,A]                  1
+4           ABCAB        [A,AB,ABC,ABCA]          [BCAB,CAB,AB,B]             2
+5           ABCABD       [A,AB,ABC,ABCA,ABCAD]    [BCABD,CABD,ABD,BD,D]       0
+
+则 next = [0,0,0,1,2,0]
+
+前缀特点，每个前缀必含有首字符 p[0]，后缀必含有尾字符p[k]，则 next 数组就是寻找首字符的位置
+  使用动态规划
+    dp[k] 推演公式
+    dp[k-1] > 0 && p[ dp[k-1] ] === p[k] ：dp[k] = dp[k-1] +1; // 思路是，从首字符开始，按照索引匹配
+    否则：dp[k] = p[k] === p[0] ? 1:0;
+
+function findNext(p: string) {
+  const dp: number[] = [ 0 ];
+
+  for (let i = 1; i < p.length; i++) {
+    if (dp[ i - 1 ] > 0 && p[ i ] === p[ dp[ i - 1 ] ]) {
+      dp[ i ] = dp[ i - 1 ] + 1;
+    }else{
+      dp[ i ] = Number(p[ i ] === p[ 0 ]);
+    }
+  }
+  return dp;
+}
+```
+
+**KMP i 移动规则**
+
+```
+字符串：BBC ABCABE ABCDABCABDE，模式：ABCABD
+
+对齐：
+  BBC ABCABE ABCDABCABDE
+  ABCABD
+第1次匹配：i=0,j=0时不匹配，则i移动 max(1,j-next[j]=0) = 1
+
+  BBC ABCABE ABCDABCABDE
+   ABCABD
+第2次匹配：i=1,j=0时不匹配，则i移动 max(1,j-next[j]=0) = 1
+
+...
+
+  BBC ABCABE ABCDABCABDE
+      ABCABD
+第5次匹配，i=4,j=0起始，一直到i=9,j=5时匹配错误，则i移动max(1,5-next[4]) = 3
+
+  BBC ABCABE ABCDABCABDE
+         ABCABD
+
+第6次匹配，i=7,j=0起始，一直到i=9,j=2时匹配错误，则i移动max(1,2-next[1]) = 2
+
+  BBC ABCABE ABCDABCABDE
+           ABCABD
+
+第7次匹配，i=9,j=0时不匹配，则i移动max(1,0-next[-1]) = 1
+
+...
+
+  BBC ABCABE ABCDABCABDE
+             ABCABD
+
+第9次匹配，i=11，j=0起始，一直到i=14,j=3匹配错误，则i移动max(1,3-next[2]) = 3
+
+  BBC ABCABE ABCDABCABDE
+                ABCABD
+第10次匹配，i=14，j=0匹配错误，则i移动max(1,0-next[-1]) = 1
+
+  BBC ABCABE ABCDABCABDE
+                 ABCABD
+第10次匹配，i=15 匹配正确
+```
+
+```
+function findPatternKMP(str: string, p: string): boolean {
+  const next = findNext(p);
+  const pLen = p.length;
+
+  for (let i = 0; i < str.length;) {
+    let j = 0;
+    for (; j < pLen; j++) {
+      if (str[ i + j ] !== p[ j ]) {
+        i += Math.max(1, j - (next[ j-1 ] || 0));
+        break;
+      }
+    }
+    if (pLen === j) return true;
+  }
+  return false;
+}
+```
 
 **BM**
 
+思路：
+
+1. 字符串对齐后，从后往前匹配
+2. 移动规则分为两种，取其中最大值
+
+   - 坏字符规则：当匹配到坏字符时<font color="red">坏字符 1 指字符串中未匹配的字符；坏字符 2 指模式中未匹配的字符</font>，
+     `i移动位数 = 模式中坏字符2索引 - 模式中坏字符1最右侧出现的索引(不存在则为-1)`
+   - 好匹配缀规则：当匹配到坏字符时，右侧已经存在匹配成功的字符串了，<font color="red">好字符后缀表示已匹配的字符串所有后缀，是个数组</font>
+     `i的移动位数= 模式中好后缀位置 - 模式中好后缀上次出现的位置`
+
+     **好后缀的位置规则规则：**
+
+     1. 好后缀取索引，取最右侧位置索引：如`ABCEDF 匹配 CEDF，则[F,DF,EDF,CEDF] 全部以F索引为标准计算`
+     2. 好后缀如果在模式中上次出现的位置不存在，则为-1 `CASE3`
+     3. 如果存在多个好后缀，**除去最长的好后缀，其余好后缀必须以模式"起始字符开始匹配"`**，如`ABDABDA 匹配 DABDA [A,DA,BDA,ABDA,DABDA]，则此时为6-0=6`；最长好后缀匹配为 `CASE1`，最佳好后缀匹配为 `CASE2`
+
+**i 的移动规则**
+
+```
+ABCBBABA 匹配 ABA
+
+首先对齐，
+  ABCBBABA
+  ABA
+- 第一次匹配，C 为坏字符1，A为坏字符2，则移动位数 i= (A的索引2)-(C的最右侧索引，由于未出现，则等于-1) => 2-(-1)=3;
+
+  ABCBBABA
+     ABA
+
+- 第二次匹配,坏字符规则： B 为坏字符1,A为坏字符2，则移动位数 i= 0-1 = -1
+- 第二次匹配，好后缀规则：BA 为好后缀，则后缀为[BA,A]，
+  BA后缀：则移动位数 i = 1 - (-1) = 2;
+  A 后缀：则移动位数 i = 2 - 0 = 2;
+
+  则 max(-1,2,2) = 2;
+
+  ABCBBABA
+       ABA
+- 第三次匹配成功
+```
+
+```
+// 计算第i个最大公约后缀
+function suffix(p: string): number[] {
+  const suffix: number[] = [];
+  const pLen: number = p.length;
+  suffix[ pLen - 1 ] = pLen;
+
+  for (let i = pLen - 2; i >= 0; i--) {
+    let j = i;
+    for (; j >= 0; j--) {
+      if (p[ j ] !== p[ pLen - 1 - (i - j) ]) {
+        break;
+      }
+    }
+    suffix[ i ] = i - j;
+  }
+  return suffix;
+}
+
+// 计算匹配模式，字符最右侧的位置，加上匹配前缀的位置（最右侧的位置）
+function findCharsIndex(p: string): Map<string, number> {
+  const pLen = p.length;
+  const pMap = new Map<string, number>();
+
+  for (let i = 0; i < p.length; i++) {
+    const fChar = p.slice(0, i + 1);
+    pMap.set(p[ i ], i);
+    pMap.set(fChar, i);
+  }
+  return pMap;
+}
+
+// 寻找最合适的匹配后缀 suffix：第i个最大匹配后缀长度，p：模式，j：坏字符位置
+function findBackChar(suffix: number[], pMap: Map<string, number>, p: string, j: number): number {
+  const pLen = p.length;
+  const goodCharLen = (pLen - 1 - j); // 好后缀长度
+
+  // 存在好后缀时
+  if (goodCharLen > 0) {
+    let goodCharPrevIndex = j; // 以suffix来计算，suffix表示第i开始的公共后缀，如果suffix[i]是大于等于好后缀的长度时，则表明能找到该好后缀，否则无法找到
+
+    // 满足最大后缀 CASE1
+    while (goodCharPrevIndex >= 0) {
+      if (suffix[ goodCharPrevIndex ] >= goodCharLen) {
+        return pLen - goodCharPrevIndex;
+      }
+      goodCharPrevIndex--;
+    }
+
+    // 如果不存在最大后缀，则寻找合适后缀，且合适后缀必须从模式首位开始匹配，即模式的前缀匹配 CASE2
+    for (let i = j + 2; i < pLen - 1; i++) {
+      if (pMap.has(p.slice(i, pLen))) {
+        return pLen - pMap.get(p.slice(i, pLen));
+      }
+    }
+
+    // 如果寻找不到最佳后缀，则匹配最后一位字符是否与首字符相等
+    return p[ pLen - 1 ] === p[ 0 ] ? pLen - 1 : pLen; // CASE2 + CASE3
+  }
+
+  return 0;
+}
+
+
+function findPByBM(str: string, p: string) {
+  const pLen = p.length;
+  const suffixList: number[] = suffix(p);
+  const pMap: Map<string, number> = findCharsIndex(p);
+
+  // 对齐字符串，从模式右侧开始查找
+  for (let i = pLen - 1; i < str.length;) {
+    let j = pLen - 1;
+    for (; j >= 0; j--) {
+      // 匹配失败
+      const n = i - pLen + 1 + j;
+      if (p[ j ] !== str[ n ]) {
+        // 以坏字符跳转
+        const badCharStep = j - (pMap.has(str[ n ]) ? pMap.get(str[ n ]) : -1);
+        // 以好后缀跳转
+        const goodCharStep = findBackChar(suffixList, pMap, p, j);
+
+        i += Math.max(badCharStep, goodCharStep);
+        break;
+      }
+    }
+
+    // 自然中断，则匹配成功
+    if (j === -1) return true;
+  }
+  return false;
+}
+```
+
 **Sunday**
+
+总体和 BM 类似，但从前往后匹配，且省略`好后缀匹配`
+思路：
+
+1. 从前往后匹配
+2. 移动位数：`下一位字符`，指字符串中，第(i+pLen)个字符
+   - 如果下一位字符没有在模式出现，则`移动位数=模式长度+1`
+   - 如果在模式出现，则`移动位数=模式中该字符最右侧到末尾的距离+1`
+
+```
+ABCBBABA 匹配 ABA
+
+首先对齐，
+  ABCBBABA
+  ABA
+第1次匹配：从i=0,j=0，到i=2,j=2时失败，则nextChar为B(C后面一位)，B在模式存在，且到末尾为2位，则移动2位
+
+  ABCBBCABA
+    ABA
+第2次匹配：i=2,j=0失败，下一位为C，在模式不存在，则移动pLen+1=4，则移动4位
+  ABCBBCABA
+        ABA
+
+匹配成功
+```
+
+```
+function findPBySunday(str: string, p: string) {
+  const pLen = p.length;
+  const pMap = new Map<string, number>();
+
+  for (let i = 0; i < pLen; i++) {
+    pMap.set(p[ i ], i);
+  }
+
+  for (let i = 0; i < str.length;) {
+    let j = 0;
+    for (; j < pLen; j++) {
+      if (str[ i + j ] !== p[ j ]) {
+        const nextChar = str[ i + pLen ];
+
+        if (pMap.has(nextChar)) {
+          i += pLen - pMap.get(nextChar);
+        } else {
+          i += (pLen + 1);
+        }
+        break;
+      }
+    }
+    if (j === pLen) return true;
+  }
+  return false;
+}
+```
 
 ## LeetCode
 
 ### 递增三元序列
 
 [递增三元序列](https://leetcode-cn.com/problems/increasing-triplet-subsequence/)
+
+思路：
+
+1. 寻找三个数，让 n1<n2<n3 成立即可
+2. 不断寻找最小的 n1，n2>n1 即可；此时主要目的就是寻找 n3
+   - 下一个数 > n2，等式成立，立即返回
+   - 下一个数 < n1，则 替代 n1；否则替代 n2
+
+```
+function increasingTriplet(num: number[]) {
+  let n1 = num[ 0 ];
+  let n2 = null;
+
+  for (let i = 1; i < num.length; i++) {
+    if (n2 !== null && num[ i ] > n2) return true;
+
+    if (num[ i ] > n1) {
+      n2 = num[ i ];
+    } else {
+      n1 = num[ i ];
+    }
+  }
+  return false;
+}
+
+```
