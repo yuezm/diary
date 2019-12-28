@@ -321,7 +321,7 @@ Node 根据文件扩展名调用不同的解析文件方法，如下所示
 *.node => process.dlopen(module, path.toNamespacedPath(filename));
 ```
 
-**循环加载**
+#### 循环加载
 
 如果文件出现循环依赖，则会**返回未完成对象**，即 module.load 为 false，且会**将循环依赖文件执行完毕**后，才执行主文件
 
