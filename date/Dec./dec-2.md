@@ -597,6 +597,10 @@ function BFS(root: TreeNode): any[] {
 
 ### 前序遍历、后续遍历+中序遍历
 
+**前序遍历、后续遍历确定根节点，中序遍历确定左右子树**
+
+思路 1：
+
 ```
 /**
  * 思路，由前序或者后续遍历确认 根节点，由中序遍历确认左右子节点集合
@@ -637,6 +641,57 @@ function buildTree(prevNodes: any[], midNodes: any[]) {
 
   return build(0, prevNodes.length - 1, 0);
 }
+```
+
+思路 2：
+
+**不记录 pstart，使用 preIndex 来记录节点，以中序遍历的 start，end 来记录节点个数**
+
+```
+class TreeNode {
+  val: number;
+  left: TreeNode;
+  right: TreeNode;
+
+  constructor(val: number, left: TreeNode = null, right: TreeNode = null) {
+    this.val = val;
+    this.left = left;
+    this.right = right;
+  }
+}
+
+
+class Tree {
+  private midOrderIndexMap: Map<number, number> = new Map();
+  private preIndex: number = 0; //
+  private preOrder: number[] = null;
+
+  buildTree(preOrder: number[], midOrder: number[]): TreeNode | null {
+    this.preOrder = preOrder;
+
+    for (let i = 0; i < midOrder.length; i++) {
+      this.midOrderIndexMap.set(midOrder[ i ], i);
+    }
+
+    return this.traverse(0, preOrder.length - 1);
+  }
+
+  traverse(start: number, end: number): TreeNode | null {
+    if (start > end) return null;
+
+    const treeVal = this.preOrder[ this.preIndex++ ];
+    const treeIndexInMiddle = this.midOrderIndexMap.get(treeVal);
+
+    const tree = new TreeNode(treeVal);
+    tree.left = this.traverse(start, treeIndexInMiddle - 1);
+    tree.right = this.traverse(treeIndexInMiddle + 1, end);
+
+    return tree;
+  }
+}
+
+const tree = new Tree();
+console.log(tree.buildTree([ 3, 9, 20, 15, 7 ], [ 9, 3, 15, 20, 7 ]));
 ```
 
 [从前序与中序遍历序列构造二叉树](https://leetcode-cn.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)
