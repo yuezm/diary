@@ -593,9 +593,9 @@ function BFS(root: TreeNode): any[] {
 }
 ```
 
-#### 前序遍历、后续遍历+中序遍历
-
 ## LeetCode
+
+### 前序遍历、后续遍历+中序遍历
 
 ```
 /**
