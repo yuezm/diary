@@ -294,7 +294,7 @@ Module._load = function(request, parent, isMain) {
 - \$HOME/.node_libraries
 - \$PREFIX/lib/node
 
-及环境变量 NODE_PATH 规定的目录
+及环境变量 NODE_PATH 规定的目录, $PREFIX 是 Node.js 里配置的 node_prefix
 
 ##### 文件定位
 
