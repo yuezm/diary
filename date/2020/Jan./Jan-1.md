@@ -213,6 +213,49 @@ NAPI_MODULE(addon, Init);
 
 ### gRPC
 
+gRPC: google 在 HTTP2 基础上封装的 RPC 协议。包含 unary，client stream，server stream，双向流。虽然在 HTTP2 都是流，但 gRPC 是 Request-Response 模型的
+
+#### Request
+
+包含 Request-Header，0 或者多个 Length-Prefixed-Message(理解为 Body)，EOS
+
+1. Request-Header 使用 HTTP2 Header，在 Header Frame 或 CONTINUATION Frame 派发，例如
+
+   - Call-Definition: 定义请求方法，POST
+   - Custom-Metadata: 主要定义任意 key-value 数据, 但不建议 key 以\*grpc-\*\*起始，gRPC 可能会使用到（可以理解为保留字）
+
+2. Length-Prefixed-Message 在 Body Frame 派发
+
+   - Compressed flag: 表示数据是否压缩，压缩算法使用 Message-Encoding 定义
+
+3. EOS(end of stream): 如果 Data frame 带上 END_STREAM, 则表示不会再发送数据
+
+#### Response
+
+包含 Response-Header，0 或者多个 Length-Prefixed-Message，Trailers，如果出现错误，则可能只返回 Trailers
+
+1. Response-Header
+
+   - HTTP 状态码
+   - Content-Type
+   - Custom-Metadata
+
+2. Length-Prefixed-Message
+
+3. Trailers
+   - gRPC Status
+   - 0 或者多个 Custom-Metadata
+   - EOS: 如果在最后收到的 HEADERS frame 里面，带上了 Trailers，并且有 END_STREAM 这个 flag，那么就意味着 response 的 EOS
+
+gRPC 的 service 接口是基于 protobuf 定义的，我们可以非常方便的将 service 与 HTTP/2 关联起来。
+
+```
+Path : /Service-Name/{method name}
+Service-Name : ?( {proto package name} "." ) {service name}
+Message-Type : {fully qualified proto message name}
+Content-Type : “application/grpc+proto”
+```
+
 ## LeetCode
 
 ### 二叉搜索树中第 K 小的元素
