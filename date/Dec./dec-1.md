@@ -138,6 +138,8 @@ const wrapper = [
   '(function (exports, require, module, __filename, __dirname) { ',
   '\n});'
 ];
+
+// wrapper 在node12 中定义在 lib/internal/bootstrap_node.js >> wrapper
 ```
 
 定义 Module 构造函数，属性、方法，静态属性、方法，包装函数等，简单介绍些几个熟悉的：
