@@ -4,7 +4,7 @@
 
 ### 深度拷贝
 
-```
+```javascript
 function deepCopy(data) {
   // 深度遍历
   const deepCopyMap = new WeakMap();
@@ -23,29 +23,28 @@ function deepCopy(data) {
       const res = Array.isArray(v) ? [] : {};
 
       deepCopyMap.set(v, res);
-      for (let attr in v) {
-        res[ attr ] = _deepCopy(v[ attr ]);
+      const keys = Reflect.ownKeys(v);
+      for (const key of keys) {
+        res[key] = _deepCopy(v[key]);
       }
+
       return res;
     }
   }
 }
 
 function deepCopyForWhile(data) {
-  // 层次遍历
-  if (isBaseType(data)) return data;
-  if (isFunction(data)) return eval(data.toString());
-
   const queue = [];
   const deepCopyMap = new WeakMap();
   const res = Array.isArray(data) ? [] : {};
+  const keys = Reflect.ownKeys(data);
 
   // 加入起始队列
-  for (let key in data) {
+  for (const key of keys) {
     queue.push({
       p: res,
       k: key,
-      v: data[ key ],
+      v: data[key],
     });
   }
   deepCopyMap.set(data, res);
@@ -60,21 +59,22 @@ function deepCopyForWhile(data) {
       r = eval(v.toString());
     } else {
       if (deepCopyMap.has(v)) {
-        p[ k ] = deepCopyMap.get(v);
+        p[k] = deepCopyMap.get(v);
         continue;
       }
       r = Array.isArray(v) ? [] : {};
       deepCopyMap.set(v, r);
 
-      for (const key in v) {
+      const keys = Reflect.ownKeys(v);
+      for (const key of keys) {
         queue.push({
           p: r,
           k: key,
-          v: v[ key ],
+          v: v[key],
         });
       }
     }
-    p[ k ] = r;
+    p[k] = r;
   }
   return res;
 }
@@ -297,6 +297,24 @@ slot，scopeSlot 在 slot 上，增加了向父组件传值
 2. 其余和 slot 保持一致
 
 **新的 API,`v-slot` 只支持 template 使用**
+
+**新的 renderSlot 中，无论是 scopeSlots 和 slots 都是先从 `this.$scopedSlots[name]`取数据，否则再从`this.$slots[name]`取数据**
+
+```
+export function renderSlot(name: string,fallback: ?Array<VNode>,props: ?Object,bindObject: ?Object): ?Array<VNode> {
+  const scopedSlotFn = this.$scopedSlots[ name ] !!!
+  let nodes
+  if (scopedSlotFn) {
+    ...
+    nodes = scopedSlotFn(props) || fallback
+  } else {
+    nodes = this.$slots[ name ] || fallback
+  }
+  ...
+}
+```
+
+而在 2.6 后，新语法 `v-slot`中，会将插槽放入$slots和$scopeSlots 中，这有啥用勒**在高阶组件时，传递 scopeSlots = this.\$scopeSlots**就可以了
 
 区别：
 
