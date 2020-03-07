@@ -589,13 +589,19 @@ Session-Ticket 由服务端生成、加密后传输给客户端，内部包含 S
 执行 npm install 步骤
 
 1. 序列化参数，例如合并 .npmrc
-2. 构建当前 node_modules 依赖树
-3. 构建构建目标依赖树（根据 shrinkwrap.json、package-lock.json、package.json），**次数需要从远程仓库获取依赖包信息**
-4. 比新树、老树，找出不同的依赖
-5. 模块扁平化，如果遇到相同模块时，如果版本符合，则忽略，否则放入自身模块依赖下**原则是尽量将模块放入第一层，便于重用**
-6. 根据依赖查询缓存，如果缓存匹配则直接使用缓存，否则向远程仓库获取
-7. 检验包的完整性: 通过，放入缓存中，按照结构解压到项目 node_modules 中；不通过：重新下载
-8. 生成 package-lock.json
+2. 构建当前 node_modules 依赖树(currentTree)
+3. 构建构建目标依赖树（根据 shrinkwrap.json、package-lock.json、package.json）(idealTree)，**次数需要从远程仓库获取依赖包信息**
+4. 比较 currentTree、idealTree，找出不同的依赖（difference）
+5. 根据依赖查询缓存，如果缓存匹配则直接使用缓存，否则向远程仓库获取
+6. 检验包的完整性: 通过，放入缓存中，按照结构解压到项目 node_modules 中；不通过：重新下载
+7. 生成 package-lock.json
+
+**模块扁平化**: 构建树时，如果遇到相同模块时，如果版本符合，则忽略，否则放入自身模块依赖下\*\*原则是尽量将模块放入第一层，便于重用
+
+```
+// lib/prune.js
+loadAllDepsIntoIdealTree
+```
 
 ### NPM 缓存机制
 
