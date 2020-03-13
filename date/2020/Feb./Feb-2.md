@@ -210,6 +210,8 @@ require('./a'); ==> __webpack_require__("./a.js");
    - 待加载完毕后，将*script*标签加载到 document.head 中
 4. 异步依赖加载完成后，再由 `代码内部__webpack__require__`调用
 
+**webpack 异步模块需要支持 Promise，如果不支持可以使用 Promise profiler**
+
 ```
 (function(modules){
   var installedModules = {};
