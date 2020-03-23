@@ -110,7 +110,36 @@ function t7(n) {
 1. 增加服务器资源
 2. 增加开发难度，比如某些 API 在 SSR 需要注意
 
-### 跨域解决
+### 跨域解
+
+**为什么会有跨域**: 浏览器同源策略，对于不符合同源策略的，_不能操作 cookie, localStorage, sessionStorage_, _不能操作 DOM_, _不能发送 AJAX_
+
+**同源策略**: 同 IP，同端口，同协议。
+
+#### Cookie 跨域
+
+1. _Set-Cookie 时_，将 Domain 设置为主域名，二级域名则可互相访问
+2. 使用 `document.domain = 一级域名`，需要二级域名同时访问
+
+#### DOM 跨域
+
+典型例子是 iframe 和 window.open 界面，如果不同源，则操作 DOM 时会报错
+
+1. 如果是主域名相同，则可使用 `document.domain = 主域名` 实现操作
+2. hash 改变和 hashchange 事件，操作 hash 改变，通过监听事件实现各自的操作
+3. window.postMessage API
+
+```
+window.postMessage(message, targetOrigin, [transfer]);
+
+window.on('message',ev=>{
+  // ev.data
+  // ev.origin
+  // ev.source
+})
+```
+
+#### AJAX 跨域
 
 #### JSONP
 
@@ -190,20 +219,6 @@ Access-Control-Allow-Origin:  * 或 客户单发送的Origin值
 #### 反向代理
 
 使用 nginx 代理
-
-#### window.postMessage
-
-新 API,使用 window.postMessage 可以对其他域的的 window 发送消息
-
-```
-window.postMessage(message, targetOrigin, [transfer]);
-
-window.on('message',ev=>{
-  // ev.data
-  // ev.origin
-  // ev.source
-})
-```
 
 ### MVVM 和 MVC
 
@@ -597,7 +612,3 @@ vuex 插件机制: 使用 plugins 提供的 Store 实例，订阅 mutation 触�
 
 1. 在事件触发时，将数据存储于 localStorage 中，使用*localforage 替代*
 2. 在初始化时，将存储的数据读取，并合并到 state 中，tips: **必须要使用 store.replaceState()**
-
-```
-
-```
