@@ -253,14 +253,217 @@ cookie 只能以服务端操作，客户端无法使用 JS 操作和获取
 
 ### 零钱对换
 
+设总金额: amount，零钱数组 coins
+
+思路 1: 递归  
+对于每个数值，都可能存在如下解法 f[n] = f[ n- coins[i] ] + 1，取其中最小值
+
+f[n] = min( f[n-coins[0]] + 1 , f[n-coins[1]] + 1, f[n-coins[i]] + 1)
+
+思路 2: 动态规划
+
+存储结构: 数组或 map  
+递归公式: f[n] = min( f[n-coins[0]] + 1 , f[n-coins[1]] + 1, f[n-coins[i]] + 1)
+
+```
+// 动态规划
+function coinChange(coins: number[], amount: number) {
+  if (amount <= 0) return -1;
+
+  const store: number[] = [0];
+
+  for (let i = 1; i <= amount; i++) {
+    let m = -1;
+    for (const coin of coins) {
+      if (i >= coin && store[i - coin] !== -1) {
+        let n = store[i - coin] + 1;
+        m = m === -1 ? n : Math.min(m, n);
+      }
+    }
+    store[i] = m;
+  }
+  return store[amount];
+}
+```
+
+[零钱对换](https://leetcode-cn.com/problems/coin-change/)
+
 ### 最大公因数
+
+设置两数为 a,b 且 a 为较大的数
+
+1. 更相加损法:
+
+   - 求 a,b 差值: c = a - b;
+   - 将 c,b 最大值赋值给 a，c,b 最小值赋值给 b _保证 a 比 b 大_
+   - 再次执行步骤 1
+
+```
+function max(a: number, b: number) {
+  if (a < b) {
+    const c = a;
+    a = b;
+    b = c;
+  }
+
+  let c = 0;
+  while ((c = a - b)) {
+    if (c === b) break;
+
+    if (c > b) {
+      a = c;
+    } else {
+      a = b;
+      b = c;
+    }
+  }
+  return c;
+}
+```
+
+**当 a - b === b 时，则 b 为最大公因子**
+
+2. 辗转相除法
+
+   - 求 a，b 余数: c = a % b;
+   - 将 c 赋值给 b, b 赋值 a _保证 a 比 b 大_
+   - 再次执行步骤 1
+
+**当 a % b ===0 时，则表示 b 是最大公因子**
+
+```
+function max(a: number, b: number) {
+  if (a < b) {
+    const c = a;
+    a = b;
+    b = c;
+  }
+
+  let c = 0;
+
+  while ((c = a % b)) {
+    if (c === 0) break;
+    a = b;
+    b = c;
+  }
+
+  return b;
+}
+```
+
+3. 递归法
+
+循环判断如下条件
+
+- 如果 a,b 都为偶数，则 _a = a /2;b = b/2；且公因子 \* 2_
+- 如果其中一个为偶数，则*该数 = 该数/2*
+- 如果都为奇数，则使用 **更相减损法**
 
 ### 字符串最大公因子
 
+设两个字符分别为 a,b
+
+思路 1: 求两个字符串的重复项，然后比较两个数组，取两个数组同时包含的值中，长度最长的字符串
+
+例如 abababab，=> [ab, abab]; ababab => [ab]，则寻找出最大匹配项为 ab
+
+思路 2:
+
+假设存在最大匹配字符串 s
+
+a 字符串由 x 个 s 字符串组成，表示为 `a = x * s;` b 字符串由 y 个 s 字符串组成，表示为 `b = y * s` ==> 则必有 `a + b === b + a`。此时: `a.length = x * s.length; b.length = y * s.length;` 那么此时 s.length 即为 a,b 数组长度的最大公因子。该问题转为**求最大公因子**
+
+```
+function gcdOfStrings(str1, str2) {
+    if (str1 === '' || str2 === '' || str1 + str2 !== str2 + str1) {
+        return '';
+    }
+    var len1 = str1.length;
+    var len2 = str2.length;
+    // 辗转相除
+    if (len1 < len2) {
+        var s = len1;
+        len1 = len2;
+        len2 = s;
+    }
+    var c = 0;
+    while ((c = len1 % len2)) {
+        if (c === 0)
+            break;
+        len1 = len2;
+        len2 = c;
+    }
+    return str1.slice(0, len2);
+}
+```
+
+[字符串最大公因子](https://leetcode-cn.com/problems/greatest-common-divisor-of-strings/submissions/)
+
 ### 多数组
+
+1. Hash 表存储，找出最大的数
+
+2. 投票算法
+   - 当记录为 0 时，则修改当前选举人
+   - 投别的人票，则记录 -1，投自己的票，则记录 +1
+
+**投票最多的，循环完成后，必然是当前选举人**
+
+```
+function majorityElement(nums: number[]) {
+  let record: number = 0;
+  let count: number = 0;
+
+  for (const item of nums) {
+    if (count === 0) {
+      record = item;
+      count++;
+
+      continue;
+    }
+
+    if (item === record) {
+      count++;
+    } else {
+      count--;
+    }
+  }
+  return record;
+}
+```
+
+[多数组](https://leetcode-cn.com/problems/majority-element/)
 
 ### 岛屿最大面积
 
-```
+思路:
+
+1. 寻找非 0 点，寻找到该点后，将该点置为 0（表示不重复寻找）
+2. 向四周发散（即寻找该点的 上下左右）
 
 ```
+function maxAreaOfIsland(grid: number[][]) {
+  let max = 0;
+  const row = grid[0].length;
+  const col = grid.length;
+
+  for (let i = 0; i < col; i++) {
+    for (let j = 0; j < row; j++) {
+      max = Math.max(max, find(i, j));
+    }
+  }
+
+  return max;
+
+  function find(i: number, j: number) {
+    if (i < 0 || i === col || j < 0 || j === row || grid[i][j] === 0) return 0;
+
+    let n = 1;
+    grid[i][j] = 0; // 避免重复探查
+    n = n + find(i - 1, j) + find(i + 1, j) + find(i, j - 1) + find(i, j + 1);
+    return n;
+  }
+}
+```
+
+[岛屿最大面积](https://leetcode-cn.com/problems/max-area-of-island/)
