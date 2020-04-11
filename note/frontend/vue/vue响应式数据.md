@@ -12,23 +12,108 @@
 
 ## 实现
 
-主要逻辑
+**主要实现方法（省略版）**
 
-```javascript
-function defineReactive(target, key, value) {
+```typescript
+function defineReactive(target: object, key: string, value: any): void {
+  const _deps: Deps = new Deps();
   ...
   Object.defineProperty(target, key, {
     get(): any {
-      // 收集依赖
+      // 由于作用域关系，此处无法访问 *哪一个 Watcher 正在获取属性*，所以使用静态属性来标识
+      if (Deps.Target) {
+        // 收集依赖
+        _deps.append(Deps.Target);
+        if (!isEmpty(childOb)) {
+          // 该步骤是结合 **数组方法劫持** 来使用的，如果属性值为数组，则调用更新时 ob.deps 而非 闭包中的 _deps
+          (childOb as Observer).deps.append(Deps.Target);
+        }
+      }
+      ...
     },
     set(v: any): void {
       // 派发更新
+      ...
+      _deps.notify();
     },
   });
 }
 ```
 
+**Deps: 存储管理依赖（省略版）**
+
+```typescript
+class Deps {
+  ...
+  public static Target: Watcher | null;
+  private subs: Set<Watcher>;
+
+  constructor(){
+    this.subs = new Set<Watcher>();
+  }
+
+  append(w: Watcher): void{
+    ...
+    this.subs.add(w);
+    ...
+  }
+
+  notify(): void{
+    for(const w of this.subs){
+      w.update();
+    }
+  }
+}
+```
+
+**Watcher: 依赖（省略版）**
+
+```typescript
+class Watcher(){
+  ...
+  private value: any;
+  private vm: Vue;
+  private getter: Function;
+  ...
+
+  constructor(options: IWatcherOptions){
+    this.vm = options.vm;
+    this.getter = options.getter;
+
+    this.get();
+  }
+
+  get(){
+    Deps.Target = this;
+    this.value = this.getter();
+    Deps.Target = null;
+  }
+
+  update(): void{
+    // 更新干点啥
+  }
+}
+```
+
+### 依赖收集
+
+1. 当 watcher 调用 get 时，触发 getter 方法
+2. watcher 内的 getter 方法，触发对象属性的 getter 方法
+3. 对象属性的 getter 方法，触发 deps 的 append 方法，此时依赖收集成功
+
+`watcher.get() => watcher.getter() => property getter() => deps.append()`
+
+### 派发更新
+
+1. 当属性值改变时，触发属性值的 setter 方法
+2. 属性值 setter 方法，触发 deps 的 notify 方法
+3. deps 的 notify 方法，触发内部收集的 watcher 的 update 方法
+
+`property value changed => property setter() => deps.notify() => watcher.update()`
+
 [simple-vue observe](https://github.com/yuezm/simple-vue/tree/master/src/observe)
+
+## Vue 中响应式数据简介
 
 ### props
 
