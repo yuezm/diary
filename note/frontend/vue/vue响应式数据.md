@@ -39,13 +39,15 @@ function defineReactive(target, key, value) {
 2. 关闭响应式数据（_为啥需要关闭_），并手动调用 `defineReactive(vm._props, key, value)` 绑定响应式数据，绑定完成后开启响应式数据
 3. 代理到 vm
 
-**为什么需要关闭响应数据**
+在 props 绑定响应式数据时，会执行如下代码
 
 ```
 toggleObserving(false) => shouldObserve = false => 会关闭 observe，致使无法使用 observe 创建响应式数据
 ```
 
-在调用 `defineReactive(vm._props, key, value)` 时，会继续调用`observe(val)`，此时，shouldObserve 可以阻止属性值继续创建响应式对象，因为 props 是父级传递的数值，不需要在子级再次维护完整的响应式数据，从而节省性能
+**为什么需要关闭响应数据？？？**
+
+在调用 `defineReactive(vm._props, key, value)` 时，会对值继续调用`observe(val)`，此时，shouldObserve 可以阻止属性值继续创建响应式对象，因为 props 是父级传递的数值，不需要在子级再次维护完整的响应式数据，从而节省性能
 
 ### data
 
