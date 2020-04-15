@@ -504,7 +504,7 @@ for (const attr in pathsStore) {
 }
 
 const _require = Module.prototype.require;
-Module.prototype.require = function(path) {
+Module.prototype.require = function (path) {
   const firstPath = path.includes('/') ? path.splice('/')[0] : '';
   if (firstPath !== '' && pathsStore[firstPath]) {
     path = path.replace(firstPath, pathsStore[firstPath]);
