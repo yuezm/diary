@@ -110,7 +110,7 @@ function t7(n) {
 1. 增加服务器资源
 2. 增加开发难度，比如某些 API 在 SSR 需要注意
 
-### 跨域解
+### 跨域
 
 **为什么会有跨域**: 浏览器同源策略，对于不符合同源策略的，_不能操作 cookie, localStorage, sessionStorage_, _不能操作 DOM_, _不能发送 AJAX_
 
