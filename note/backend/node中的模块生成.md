@@ -1,5 +1,3 @@
-# Node 的模块学习
-
 **Node 版本为 v10.16.0**
 
 ## 模块分类
@@ -20,9 +18,11 @@ Node 模块一般分为 4 类：
 
 ### Builtin Module
 
+Builtin Module 源码在 _src_ 目录下，在编译生成可执行文件时，嵌入 ELF 格式（可执行可链接文件）的二进制文件 node 中。
+
 后续按照**Module 定义、Module 存储、Module 挂载**来介绍 Builtin Module 的生成步骤，且将模块挂载生成分为两个步骤: **预挂载**（调用 `node::RegisterBuiltinModules()` 前） 以及 **挂载** （调用`node::RegisterBuiltinModules()`后）
 
-tips: 预挂载和挂载是我自定义的阶段，主要是为了区分宏、函数的调用时机
+tips: 预挂载和挂载是自定义的阶段，主要是为了区分宏、函数的调用时机
 
 #### Module 定义
 
@@ -223,6 +223,200 @@ extern "C" void node_module_register(void* m) {
 
 ### Native Module
 
+Native Module 源码在 _lib_ 文件夹下，和 Builtin Module 一样，也是在编译生成可执行文件时，嵌入 ELF 格式（可执行可链接文件）的二进制文件 node 中。
+
+后续按照 **生成 node_javascript.cc**，**Module 存储**，**Module 挂载**来介绍
+
+#### 生成 node_javascript.cc
+
+在编译 node 编译时，_tools/js2c.py_ 会将 _lib/_.js\*文件进行操作:
+
+1. 将文件每一个字符转换为 ASCII 编码（包含文件名）
+2. 将转换的数据存放于 _out/Release/obj/gen/node_javascript.cc_
+
+拿 _fs.js_ 文件举例，转换的结果为:
+
+```cpp
+// node_javascript.cc
+...
+static const uint8_t raw_fs_key[] = { 102,115 }; // 分别为 'f', 's'
+static struct : public v8::String::ExternalOneByteStringResource {
+  const char* data() const override { return reinterpret_cast<const char*>(raw_fs_key); }
+  size_t length() const override { return arraysize(raw_fs_key); }
+  void Dispose() override {}
+
+  // 转换 把 ASCII 转换为 v8:String 对象，转换后，该字符串可以在 Javascript 中使用
+  v8::Local<v8::String> ToStringChecked(v8::Isolate* isolate) {
+    return v8::String::NewExternalOneByte(isolate, this).ToLocalChecked();
+  }
+} fs_key;
+
+static const uint8_t raw_fs_value[] = { 47,47,32,67...}; // 分别为 '/', '/', ' ', 'C'...
+...
+
+// 关键函数
+void DefineJavaScript(Environment* env, v8::Local<v8::Object> target) {
+  CHECK(
+      target->Set(env->context(),
+      fs_key.ToStringChecked(env->isolate()),
+      fs_value.ToStringChecked(env->isolate())
+    ).FromJust()
+  );
+}
+```
+
+#### Native Module 存储
+
+##### 存储形式
+
+Native Module 是以对象形式存储的，拿 fs 举例
+
+在 `DefineJavaScript`执行时，target 为 exports，即次代码转换为 Javascript 表示即是
+
+```
+exports.fs = "...";
+```
+
+一次类推，其余模块也是如此表示的
+
+##### 存储地点
+
+```javascript
+// lib/internal/bootstrap/loaders.js
+
+...
+NativeModule._source = getBinding('natives');
+...
+```
+
+此处为真正 Native Module 存储地点，以 fs 举例，NativeModule.\_source 表现如下
+
+```
+NativeModule._source = {
+  "fs": "..."
+};
+```
+
+tips: getBinding 在下面会介绍，这里主要阐述存储，对不详细阐述如何提取模块
+
+#### Native Module 挂载
+
+Native Module 挂载关键在于执行 _DefineJavaScript_
+
+```cpp
+static void GetBinding(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  ...
+  } else if (!strcmp(*module_v, "natives")) {
+    exports = Object::New(env->isolate());
+    DefineJavaScript(env, exports);
+  }
+  ...
+  args.GetReturnValue().Set(exports);
+}
+```
+
+当调用 `NativeModule._source = getBinding('natives'); => GetBinding => DefineJavaScript`，此时完成 Native Module 的挂载
+
 ### Constants Module
 
-## 模块加载
+#### 模块定义
+
+_src/node_constants.cc_
+
+```cpp
+// src/node.cc
+
+static void GetBinding(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+  ...
+  } else if (!strcmp(*module_v, "constants")) {
+    exports = Object::New(env->isolate());
+    CHECK(exports->SetPrototype(env->context(), Null(env->isolate())).FromJust());
+    DefineConstants(env->isolate(), exports);
+  }
+
+  args.GetReturnValue().Set(exports);
+}
+```
+
+```cpp
+// src/node_constants.cc
+
+void DefineConstants(v8::Isolate* isolate, Local<Object> target){
+  ...
+  Local<Object> fs_constants = Object::New(isolate);
+  CHECK(
+    fs_constants->SetPrototype(
+      env->context(),
+      Null(env->isolate())
+    ).FromJust()
+  );
+  ...
+  DefineSystemConstants(fs_constants);
+  ...
+  target->Set(OneByteString(isolate, "fs"), fs_constants);
+}
+
+void DefineSystemConstants(Local<Object> target) {
+  ...
+  // file access modes
+  NODE_DEFINE_CONSTANT(target, O_RDONLY);
+  NODE_DEFINE_CONSTANT(target, O_WRONLY);
+  NODE_DEFINE_CONSTANT(target, O_RDWR);
+  ...
+}
+```
+
+```cpp
+// src/node.h
+#define NODE_DEFINE_CONSTANT(target, constant)                                \
+  do {                                                                        \
+    v8::Isolate* isolate = target->GetIsolate();                              \
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();            \
+    v8::Local<v8::String> constant_name = v8::String::NewFromUtf8(isolate, #constant, v8::NewStringType::kInternalized).ToLocalChecked();               \
+    v8::Local<v8::Number> constant_value = v8::Number::New(isolate, static_cast<double>(constant));              \
+    v8::PropertyAttribute constant_attributes =  static_cast<v8::PropertyAttribute>(v8::ReadOnly | v8::DontDelete);    \
+    (target)->DefineOwnProperty(context,                                      \
+                                constant_name,                                \
+                                constant_value,                               \
+                                constant_attributes).FromJust();              \
+  }                                                                           \
+  while (0)
+
+// 翻译为 Javascript 代码为.
+function NODE_DEFINE_CONSTANT(target, constant){
+  Object.defineProperty(target, '' + constant, {
+    value: constant,
+    enumerable: true,
+    writable: false,
+    configurable: false,
+  })
+}
+
+// 拿 fs_constants 和 O_RDONLY 距离，结果为
+Object.defineProperty(fs_constants, "O_RDONLY", {
+  value: 0, // 该枚举定义于 fcntl.h
+  enumerable: true,
+  writable: false,
+  configurable: false,
+})
+```
+
+```javascript
+// lib/fs.js
+...
+const { fs: constants } = process.binding('constants');
+...
+Object.defineProperties(fs, {
+  F_OK: { enumerable: true, value: F_OK || 0 },
+  R_OK: { enumerable: true, value: R_OK || 0 },
+  W_OK: { enumerable: true, value: W_OK || 0 },
+  X_OK: { enumerable: true, value: X_OK || 0 },
+  constants: {
+    configurable: false,
+    enumerable: true,
+    value: constants
+  },
+});
+```
