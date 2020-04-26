@@ -194,7 +194,25 @@ function reverseWords(s: string): string {
 ```
 
 ```typescript
+// 字符串拼接
+function reverseWords(s: string): string {
+  let res = ''; // 最终的字符串
+  let _s = ''; // 临时存储字符串
+  s = s.trim();
 
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === ' ') {
+      if (_s) {
+        res = ' ' + _s + res;
+        _s = '';
+      }
+      continue;
+    }
+    _s += s[i];
+  }
+
+  return _s + res;
+}
 ```
 
 **注意：**
