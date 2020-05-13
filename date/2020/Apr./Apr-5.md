@@ -446,6 +446,27 @@ Stream<int> asynchronousNaturalsTo(int n) async* {
 
 ### 搜索旋转非排序数组
 
+思路：二分法 + 确定数组有序
+
+设 起始位 index 为 s, 结束 index 为 e，第 0 位的值为 START，最后一位的值为 END
+
+二分法：使用二分法确定 m = (s + e) >> 1；
+
+确定数组是否有序：
+
+1. 如果 arr[m] >= START，则表示 m 的左边是有序的，如果 target < arr[m] && target >= START，则应该向做移动，否则向右
+2. 如果 arr[m] <= END，则表示 m 的右边是有序的，如果 target < arr[m] && target <= END，则应该向右移动，否则向左
+
+```
+
+```
+
+**注意点**
+
+1. 即使判断有序时，也需要与两端的极值做比较，不然会出现如下情况 arr = [4,5,6,1,2,3]，target = 2：_2 < 6，但此时也应该向右移动_
+
+[搜索旋转非排序数组](https://leetcode-cn.com/problems/search-in-rotated-sorted-array/)
+
 ### 数组中数字出现的次数
 
 ### 山脉数组找出目标值
