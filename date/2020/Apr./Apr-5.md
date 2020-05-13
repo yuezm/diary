@@ -1,3 +1,5 @@
+# Apr-5
+
 ## Node
 
 ### Error
@@ -23,20 +25,20 @@ Error 是 node 中基本错误对象，其他错误继承于 Error
 
 ##### Error.captureStackTrace
 
-`Error.captureStackTrace(targetObject[, constructorOpt])`，用于隐藏错误细节
+`Error.captureStackTrace(targetObject[, constructorOpt])` ，用于隐藏错误细节
 
-```javascript
+``` javascript
 const demo = {};
 Error.captureStackTrace(demo); // 向demo对象添加 stack 属性，值为栈调用信息
 console.log(demo.stack); // demo的调用栈
 
 // 自定义错误对象
 class MyError {
-  constructor() {
-    Error.captureStackTrace(this, MyError);
+    constructor() {
+        Error.captureStackTrace(this, MyError);
 
-    this.message = 'I am a Error';
-  }
+        this.message = 'I am a Error';
+    }
 }
 
 new MyError(); // MyError { message: 'I am a Error' }
@@ -46,17 +48,17 @@ new MyError(); // MyError { message: 'I am a Error' }
 
 对错误进行处理，**且注意，处理后对所有错误生效**
 
-```javascript
+``` javascript
 Error.prepareStackTrace: (err: Error, stackTraces: NodeJS.CallSite[]) => any;
 
 // err：错误本身
 // stackTraces 错误调用栈
 
 Error.prepareStackTrace = function(err, stackTraces) {
-  // return err;
-  // return stackTraces
-  // return err + stackTraces
-  // return 'Hello word!!!'
+    // return err;
+    // return stackTraces
+    // return err + stackTraces
+    // return 'Hello word!!!'
 };
 ```
 
@@ -79,11 +81,13 @@ Error.prepareStackTrace = function(err, stackTraces) {
 
 #### 点击劫持防御
 
-1. iframe busting：利用 Javascript 代码判断，当前 window 是否处于顶层 `window.top`。但是 iframe busting 也存在缺点，由于是 Javascript 进行判断，如果阻止 Javascript 执行即可绕过 iframe busting，例如 _IE 中 iframe security 等特性，会导致 iframe 内代码不执行_
+1. iframe busting：利用 Javascript 代码判断，当前 window 是否处于顶层 `window.top` 。但是 iframe busting 也存在缺点，由于是 Javascript 进行判断，如果阻止 Javascript 执行即可绕过 iframe busting，例如 _IE 中 iframe security 等特性，会导致 iframe 内代码不执行_
 2. X-Frame-Options：使用 HTTP 头部来控制 iframe 策略：
+
    - DENY：拒绝加载为 iframe
    - SAMEORIGIN：同域加载
    - ALLOW-FROM：origin：定义可加载的域名
+
 3. CSP
 
 ## Vue
@@ -107,7 +111,7 @@ vue 3.0 新的 API
 
 **典型应用**：日志打点，权限控制
 
-```typescript
+``` typescript
 import { Component, ComponentOptions, CreateElement, VNode } from 'vue';
 import Vue from 'vue/types/vue';
 
@@ -168,7 +172,7 @@ Mixin：原理是对象属性的复制，可以将多个对象的属性进行赋
 
 #### API
 
-```typescript
+``` typescript
 ref()
 toRefs()
 isRef()
@@ -180,7 +184,6 @@ provide()
 inject()
 
 watchEffect()
-
 
 // 生命周期
 
@@ -206,15 +209,15 @@ _当生命周期 vue2.0 和 vue3.0 同时运行时，在 **vue2 中优先运行 
 ### dart 特性
 
 1. 在 dart 中，**一切皆对象**，任何数据类型都是对象，继承于*Object*，包括 number，String，null 等
-2. dart 为强类型语言，但类型是可以推断的，例如`var a = 1;` 推断为 int
+2. dart 为强类型语言，但类型是可以推断的，例如 `var a = 1;` 推断为 int
 3. dart 支持泛型
-4. dart 支持函数，且必须包含入口函数 `int main(){}`
+4. dart 支持函数，且必须包含入口函数 `int main(){}` 
 5. dart 没有类的访问限制符（public，private，protected），在 dart 中，私有变量以"下划线\_"表示
 6. dart 攻击提示两种错误类型，警告、错误。警告只是程序可能错误，但不会阻止程序执行；而错误会阻止程序执行非，分为*编译错误*和*运行错误*
 
 ### 变量声明
 
-```
+``` 
 int n = 1;
 var n1 = 2;
 dynamic n2 = 2;
@@ -226,32 +229,36 @@ const n4 = 5; // const值声明后固定不变
 ### 变量类型
 
 1. number
-   - double：`double d = 1.0;`
-   - int：`int i = 1;`
+
+   - double： `double d = 1.0;` 
+   - int： `int i = 1;` 
+
 2. string
 
-   - String：`String str = '';`
-   - r'...'：原始字符串 `String str = r'';`
+   - String： `String str = '';` 
+   - r'...'：原始字符串 `String str = r'';` 
    - '${exp}'：如果exp是变量，则可以简化为'$exp'
 
-   ```
+   
+
+``` 
    String exp = 'exp';
    String str = '$exp';
    String str1 = '${exp.toLowerCase()}';
    ```
 
-   - ... xxx ...：多行字符串：`String l = '''long string''';`
+   - ... xxx ...：多行字符串： `String l = '''long string''';` 
 
-3. boolean：bool：`bool b = false;`
-4. list/array：`List<int> l = [];`
-5. set：`Set<int> s = {1, 2, 3, 4};`
-6. map：`Map<int, int> m = {1: 2};`
+3. boolean：bool： `bool b = false;` 
+4. list/array： `List<int> l = [];` 
+5. set： `Set<int> s = {1, 2, 3, 4};` 
+6. map： `Map<int, int> m = {1: 2};` 
 7. Rune：用来表示字符串中的 UTF-32 编码字符
-8. Symbol：程序中声明的运算符或者标识符 `Symbol s = #symbol;`
+8. Symbol：程序中声明的运算符或者标识符 `Symbol s = #symbol;` 
 
 ### 运算符
 
-```dart
+``` dart
 +，-，*，/，%
 &&，||，!
 &，|，^，~，<<，>>
@@ -264,7 +271,7 @@ const n4 = 5; // const值声明后固定不变
 
 ### 函数
 
-```dart
+``` dart
 // 位置参数，可选参数
 int fn(int x, int y, [int z = 0]) {
   return x + y + z == null ? 0 : z;
@@ -282,13 +289,13 @@ fn(x: 1, y: 2);
 
 #### 箭头函数
 
-```dart
+``` dart
 int fn(int x, int y) => x + y;
 ```
 
 #### 匿名函数
 
-```dart
+``` dart
 ([[Type] param1[, …]]) {
   codeBlock;
 };
@@ -301,7 +308,7 @@ list.forEach((item){
 
 ### class
 
-```dart
+``` dart
 class Test{
   // 构造函数，构造函数的名字可以是 ClassName 或者 ClassName.identifier
   Test(int x, int _y) {
@@ -317,7 +324,7 @@ class Test{
 1. 类如果未声明构造函数，则提供默认的构造函数
 2. 构造函数不被继承
 
-```dart
+``` dart
 class Test {
   int x;
 
@@ -333,7 +340,7 @@ var t2 = new Test.X(1);
 
 #### 继承
 
-```dart
+``` dart
 class P {
   int x;
   P(int _x) {
@@ -348,7 +355,7 @@ class C extends P {
 
 #### Getter Setter
 
-```dart
+``` dart
 class Test {
   String _name = 'Test';
 
@@ -361,7 +368,7 @@ class Test {
 
 **可以重写父类方法，也可重写运算符**
 
-```dart
+``` dart
 class Vector {
   final int x, y;
 
@@ -377,7 +384,7 @@ class Vector {
 
 #### 抽象类型
 
-```
+``` 
 abstract class Test {
 
 }
@@ -385,7 +392,7 @@ abstract class Test {
 
 #### 静态属性、方法
 
-```dart
+``` dart
 class Test {
   static int i;
 }
@@ -393,7 +400,7 @@ class Test {
 
 #### Mixin
 
-```dart
+``` dart
 // Mixin 是复用类代码的一种途径， 复用的类可以在不同层级，之间可以不存在继承关系
 class Maestro extends Person
     with Musical, Aggressive, Demented {
@@ -406,11 +413,11 @@ class Maestro extends Person
 
 #### 对象类型
 
-`test.runtimeType`：返回 Type 对象
+`test.runtimeType` ：返回 Type 对象
 
 ### 枚举
 
-```dart
+``` dart
 enum Color { RED, BLUE };
 ```
 
@@ -418,7 +425,7 @@ enum Color { RED, BLUE };
 
 Future 是 JS 中的 Promise
 
-```dart
+``` dart
 Future checkVersion() async {
   var version = await lookUpVersion();
 }
@@ -426,7 +433,7 @@ Future checkVersion() async {
 
 ### 生成器
 
-```dart
+``` dart
 // 同步生成器
 Iterable<int> naturalsTo(int n) sync* {
   int k = 0;
@@ -457,9 +464,47 @@ Stream<int> asynchronousNaturalsTo(int n) async* {
 1. 如果 arr[m] >= START，则表示 m 的左边是有序的，如果 target < arr[m] && target >= START，则应该向做移动，否则向右
 2. 如果 arr[m] <= END，则表示 m 的右边是有序的，如果 target < arr[m] && target <= END，则应该向右移动，否则向左
 
-```
+```typescript 
+function search(nums: number[], target: number): number {
+  const START = nums[0]; 
+  const END = nums[nums.length - 1]; 
 
-```
+  return halfFind(0, nums.length - 1); 
+
+  function halfFind(s: number, e: number): number {
+
+    if(s > e) return -1;
+    
+    const m: number = (s + e) >> 1;
+    const mid = nums[m];
+
+    if (mid === target) return m;
+
+    // left sorted
+    if (mid >= START) {
+      if (target < mid && target >= START) {
+        // left move
+        e = m - 1;
+      } else {
+        s = m + 1;
+      }
+      return halfFind(s, e);
+    } else if (mid <= END) {
+      // right sorted
+      if (target > mid && target <= END) {
+        s = m + 1;
+      } else {
+        e = m - 1;
+      }
+      return halfFind(s, e);
+    } else {
+      return -1;
+    }
+
+  }
+}; 
+
+``` 
 
 **注意点**
 
@@ -469,10 +514,16 @@ Stream<int> asynchronousNaturalsTo(int n) async* {
 
 ### 数组中数字出现的次数
 
+```
+
+```
+
+[数组中数字出现的次数](https://leetcode-cn.com/problems/shu-zu-zhong-shu-zi-chu-xian-de-ci-shu-lcof/)
+
 ### 山脉数组找出目标值
 
 ### 快乐数
 
-```
+``` 
 
 ```
