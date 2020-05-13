@@ -261,6 +261,11 @@ Accept-Range: bytes | none
 
 ##### ETag
 
+1. 强 ETag："xxx"：表示资源必须**每一个字节都相等**，所以强 ETag 可以字节范围请求；
+2. 弱 ETag：W/"xxx"：表示资源**不必须每个字节都相等，但语义上相等**，无法做字节范围请求
+
+当服务器无法生成强 ETag 时，则可以使用弱 ETag
+
 ##### Location
 
 重定向 URL
