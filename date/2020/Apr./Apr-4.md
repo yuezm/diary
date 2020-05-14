@@ -6,13 +6,13 @@
 2. em
 3. vw/vh
 4. %
+5. rem
 
 ### 绝对单位
 
 1. in:
 2. mm/cm
 3. pt：1/72 inch
-4. rem
 
 ### px
 
@@ -74,6 +74,8 @@ DPR = CSS 像素 / 设备像素，可以使用 `window.devicePixelRatio` 来查�
 ##### DPI 和 PPI
 
 DPI：每英寸的点数，一般用于打印机、鼠标等设备
+
+PPI：没英寸的像素（像素密度）
 
 DPI 和 PPI：_一个点通常来说就是一个像素_，只是适用于不同的场合，例如图像一般使用 PPI，打印机一般使用 DPI
 
