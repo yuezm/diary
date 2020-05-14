@@ -27,18 +27,18 @@ Error 是 node 中基本错误对象，其他错误继承于 Error
 
 `Error.captureStackTrace(targetObject[, constructorOpt])` ，用于隐藏错误细节
 
-``` javascript
+```javascript
 const demo = {};
 Error.captureStackTrace(demo); // 向demo对象添加 stack 属性，值为栈调用信息
 console.log(demo.stack); // demo的调用栈
 
 // 自定义错误对象
 class MyError {
-    constructor() {
-        Error.captureStackTrace(this, MyError);
+  constructor() {
+    Error.captureStackTrace(this, MyError);
 
-        this.message = 'I am a Error';
-    }
+    this.message = 'I am a Error';
+  }
 }
 
 new MyError(); // MyError { message: 'I am a Error' }
@@ -48,7 +48,7 @@ new MyError(); // MyError { message: 'I am a Error' }
 
 对错误进行处理，**且注意，处理后对所有错误生效**
 
-``` javascript
+```javascript
 Error.prepareStackTrace: (err: Error, stackTraces: NodeJS.CallSite[]) => any;
 
 // err：错误本身
@@ -111,7 +111,7 @@ vue 3.0 新的 API
 
 **典型应用**：日志打点，权限控制
 
-``` typescript
+```typescript
 import { Component, ComponentOptions, CreateElement, VNode } from 'vue';
 import Vue from 'vue/types/vue';
 
@@ -172,7 +172,7 @@ Mixin：原理是对象属性的复制，可以将多个对象的属性进行赋
 
 #### API
 
-``` typescript
+```typescript
 ref()
 toRefs()
 isRef()
@@ -211,13 +211,13 @@ _当生命周期 vue2.0 和 vue3.0 同时运行时，在 **vue2 中优先运行 
 1. 在 dart 中，**一切皆对象**，任何数据类型都是对象，继承于*Object*，包括 number，String，null 等
 2. dart 为强类型语言，但类型是可以推断的，例如 `var a = 1;` 推断为 int
 3. dart 支持泛型
-4. dart 支持函数，且必须包含入口函数 `int main(){}` 
+4. dart 支持函数，且必须包含入口函数 `int main(){}`
 5. dart 没有类的访问限制符（public，private，protected），在 dart 中，私有变量以"下划线\_"表示
 6. dart 攻击提示两种错误类型，警告、错误。警告只是程序可能错误，但不会阻止程序执行；而错误会阻止程序执行非，分为*编译错误*和*运行错误*
 
 ### 变量声明
 
-``` 
+```
 int n = 1;
 var n1 = 2;
 dynamic n2 = 2;
@@ -230,35 +230,33 @@ const n4 = 5; // const值声明后固定不变
 
 1. number
 
-   - double： `double d = 1.0;` 
-   - int： `int i = 1;` 
+   - double： `double d = 1.0;`
+   - int： `int i = 1;`
 
 2. string
 
-   - String： `String str = '';` 
-   - r'...'：原始字符串 `String str = r'';` 
+   - String： `String str = '';`
+   - r'...'：原始字符串 `String str = r'';`
    - '${exp}'：如果exp是变量，则可以简化为'$exp'
 
-   
-
-``` 
+```
    String exp = 'exp';
    String str = '$exp';
    String str1 = '${exp.toLowerCase()}';
-   ```
+```
 
-   - ... xxx ...：多行字符串： `String l = '''long string''';` 
+- ... xxx ...：多行字符串： `String l = '''long string''';`
 
-3. boolean：bool： `bool b = false;` 
-4. list/array： `List<int> l = [];` 
-5. set： `Set<int> s = {1, 2, 3, 4};` 
-6. map： `Map<int, int> m = {1: 2};` 
+3. boolean：bool： `bool b = false;`
+4. list/array： `List<int> l = [];`
+5. set： `Set<int> s = {1, 2, 3, 4};`
+6. map： `Map<int, int> m = {1: 2};`
 7. Rune：用来表示字符串中的 UTF-32 编码字符
-8. Symbol：程序中声明的运算符或者标识符 `Symbol s = #symbol;` 
+8. Symbol：程序中声明的运算符或者标识符 `Symbol s = #symbol;`
 
 ### 运算符
 
-``` dart
+```dart
 +，-，*，/，%
 &&，||，!
 &，|，^，~，<<，>>
@@ -271,7 +269,7 @@ const n4 = 5; // const值声明后固定不变
 
 ### 函数
 
-``` dart
+```dart
 // 位置参数，可选参数
 int fn(int x, int y, [int z = 0]) {
   return x + y + z == null ? 0 : z;
@@ -289,13 +287,13 @@ fn(x: 1, y: 2);
 
 #### 箭头函数
 
-``` dart
+```dart
 int fn(int x, int y) => x + y;
 ```
 
 #### 匿名函数
 
-``` dart
+```dart
 ([[Type] param1[, …]]) {
   codeBlock;
 };
@@ -308,7 +306,7 @@ list.forEach((item){
 
 ### class
 
-``` dart
+```dart
 class Test{
   // 构造函数，构造函数的名字可以是 ClassName 或者 ClassName.identifier
   Test(int x, int _y) {
@@ -324,7 +322,7 @@ class Test{
 1. 类如果未声明构造函数，则提供默认的构造函数
 2. 构造函数不被继承
 
-``` dart
+```dart
 class Test {
   int x;
 
@@ -340,7 +338,7 @@ var t2 = new Test.X(1);
 
 #### 继承
 
-``` dart
+```dart
 class P {
   int x;
   P(int _x) {
@@ -355,7 +353,7 @@ class C extends P {
 
 #### Getter Setter
 
-``` dart
+```dart
 class Test {
   String _name = 'Test';
 
@@ -368,7 +366,7 @@ class Test {
 
 **可以重写父类方法，也可重写运算符**
 
-``` dart
+```dart
 class Vector {
   final int x, y;
 
@@ -384,7 +382,7 @@ class Vector {
 
 #### 抽象类型
 
-``` 
+```
 abstract class Test {
 
 }
@@ -392,7 +390,7 @@ abstract class Test {
 
 #### 静态属性、方法
 
-``` dart
+```dart
 class Test {
   static int i;
 }
@@ -400,7 +398,7 @@ class Test {
 
 #### Mixin
 
-``` dart
+```dart
 // Mixin 是复用类代码的一种途径， 复用的类可以在不同层级，之间可以不存在继承关系
 class Maestro extends Person
     with Musical, Aggressive, Demented {
@@ -417,7 +415,7 @@ class Maestro extends Person
 
 ### 枚举
 
-``` dart
+```dart
 enum Color { RED, BLUE };
 ```
 
@@ -425,7 +423,7 @@ enum Color { RED, BLUE };
 
 Future 是 JS 中的 Promise
 
-``` dart
+```dart
 Future checkVersion() async {
   var version = await lookUpVersion();
 }
@@ -433,7 +431,7 @@ Future checkVersion() async {
 
 ### 生成器
 
-``` dart
+```dart
 // 同步生成器
 Iterable<int> naturalsTo(int n) sync* {
   int k = 0;
@@ -464,17 +462,16 @@ Stream<int> asynchronousNaturalsTo(int n) async* {
 1. 如果 arr[m] >= START，则表示 m 的左边是有序的，如果 target < arr[m] && target >= START，则应该向做移动，否则向右
 2. 如果 arr[m] <= END，则表示 m 的右边是有序的，如果 target < arr[m] && target <= END，则应该向右移动，否则向左
 
-```typescript 
+```typescript
 function search(nums: number[], target: number): number {
-  const START = nums[0]; 
-  const END = nums[nums.length - 1]; 
+  const START = nums[0];
+  const END = nums[nums.length - 1];
 
-  return halfFind(0, nums.length - 1); 
+  return halfFind(0, nums.length - 1);
 
   function halfFind(s: number, e: number): number {
+    if (s > e) return -1;
 
-    if(s > e) return -1;
-    
     const m: number = (s + e) >> 1;
     const mid = nums[m];
 
@@ -500,11 +497,9 @@ function search(nums: number[], target: number): number {
     } else {
       return -1;
     }
-
   }
-}; 
-
-``` 
+}
+```
 
 **注意点**
 
@@ -514,16 +509,133 @@ function search(nums: number[], target: number): number {
 
 ### 数组中数字出现的次数
 
-```
+思路：
 
+1. 借助`n ^ n === 0 && n ^ 0 === n` 的特性，实现
+2. 两数如果不同，则二进制表示时，必定有一处不同（一个为 1，一个为 0，此时可以对两个数进行区分）
+
+```typescript
+function singleNumbers(nums: number[]): number[] {
+  // 借助连续异或
+  const n = nums.reduce((s: number, i: number) => s ^ i, 0);
+
+  // 寻找 n 的二进制为1处，因为 n 二进制为1时，必定为两数不同的地方，借助此处识别两数
+  let d = 1;
+  while ((n & d) === 0) {
+    d <<= 1;
+  }
+
+  // 此时寻找到n为1处了，该数为d, 再次对nums异或
+  let i,
+    j = 0;
+
+  for (const m of nums) {
+    // 借助d来识别两数不同的地方
+    if ((m & d) === 0) {
+      i ^= m;
+    } else {
+      j ^= m;
+    }
+  }
+
+  return [i, j];
+}
 ```
 
 [数组中数字出现的次数](https://leetcode-cn.com/problems/shu-zu-zhong-shu-zi-chu-xian-de-ci-shu-lcof/)
 
 ### 山脉数组找出目标值
 
+思路：**山脉数组**：像一个山脉一样，中间高，两边低
+
+1. 根据二分法确定山巅处
+2. 确定山巅后，在左边寻找，如果可以找到则返回，否则右边寻找；如果左右都没找到则返回-1
+
+```typescript
+function findInMountainArray(target: number, mountainArr: number[]): number {
+  // 如果小于最小值，则无需判断了
+  if (target < mountainArr[0] && target < mountainArr[mountainArr.length - 1])
+    return -1;
+
+  // 第一步 确定山巅位置
+  let s = 0,
+    e = mountainArr.length - 1;
+  while (true) {
+    const m = (s + e) >> 1;
+    const mid = mountainArr[m];
+
+    // 寻找到山巅
+    if (mid > mountainArr[m - 1] && mid > mountainArr[m + 1]) {
+      break;
+    } else if (mid < mountainArr[m - 1]) {
+      // 此时mid必定偏右，则向左移动
+      e = m - 1;
+    } else {
+      s = m + 1;
+    }
+  }
+  // 如果超过最大值，则无需判断了
+  if (target > mountainArr[s]) return -1;
+
+  let index = halfFind(0, s);
+  if (index !== -1) return index;
+  index = halfFind(s, mountainArr.length - 1, false);
+  return index;
+
+  function halfFind(
+    start: number,
+    end: number,
+    isLeft: boolean = true
+  ): number {
+    while (start <= end) {
+      const middle = (start + end) >> 1;
+      const mid = mountainArr[middle];
+
+      if (mid === target) return middle;
+
+      if (target < mid) {
+        // 左边往左走，右边往右
+        isLeft ? (end = middle - 1) : (start = middle + 1);
+      } else {
+        isLeft ? (start = middle + 1) : (end = middle - 1);
+      }
+    }
+    return -1;
+  }
+}
+```
+
+[山脉数组中查找目标值](https://leetcode-cn.com/problems/find-in-mountain-array/submissions/)
+
 ### 快乐数
 
-``` 
+思路：不断的将其累乘，**如果数重复出现**，且未退出循环，则失败
 
+```typescript
+function isHappy(n: number): boolean {
+  const s = new Set();
+  const res = [0, 1, 4, 9, 16, 25, 36, 49, 64, 81];
+
+  while (!s.has(n)) {
+    s.add(n);
+    n = calculate(n);
+    if (n === 1) return true;
+  }
+
+  return false;
+
+  function calculate(num: number): number {
+    let m = 0;
+
+    while (num > 0) {
+      const n = num % 10;
+      m += res[n];
+      num = Math.trunc(num / 10);
+    }
+
+    return m;
+  }
+}
 ```
+
+[快乐数](https://leetcode-cn.com/problems/happy-number/)
