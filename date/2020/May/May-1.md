@@ -152,7 +152,23 @@ const E1 {
 
 interface：一些方法和属性的接口，属于特征集合，用于描述类，**只存在于编译阶段**
 
-#### Function
+##### 可索引接口
+
+描述数组或对象的接口
+
+```typescript
+interface AI {
+  [index: number]: any;
+}
+
+interface OI {
+  [key: string]: any;
+}
+```
+
+##### 函数接口
+
+描述函数
 
 ```typescript
 interface IF {
@@ -160,22 +176,262 @@ interface IF {
 }
 ```
 
+#### Function
+
 ##### Function 的重载和重写
+
+1. 重载：在其他语言中，表示对不同的参数个数或参数类型调用不同的函数，_typescript 没有正真意义上的重载，只是函数的参数进行不同声明_，**最终还是调用一个函数**
+
+```typescript
+declare function fn(x: string, y: string): string;
+declare function fn(x: number, y: number): number;
+
+// 最终由js完成计算
+function fn(x, y) {
+  return x + y;
+}
+```
+
+2. 重写：子类继承父类时，对继承父类的方法修改
+
+```typescript
+class Person {
+  show() {}
+}
+
+class YellowMan extends Person {
+  show() {}
+}
+```
 
 #### Class
 
 ##### 访问权限控制符
 
+1. private
+2. public
+3. protected
+
 ## Flutter
 
 ### Flutter Demo
 
+```dart
+import 'package:flutter/material.dart';
+
+void main() => runApp(new TestApp()); // 入口函数
+
+// 入口 app
+class TestApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return new MaterialApp(
+      title: 'Test Demo', // 标题
+      theme: new ThemeData.light(), // 主体
+      home: new Home(title: 'Demo'), // 首路由
+    );
+  }
+}
+
+// Widget 简单分为 StatelessWidget（无状态组件） StatefulWidget（有状态组件），有状态组件中 StatefulWidget 本身是不变的，而其中 State 类是可变的，
+class Home extends StatefulWidget {
+  Home({Key key, this.title}) : super(key: key); // 构造函数运行，由于 title 是 final 声明，则只能在构造函数改变一次
+
+  final String title;
+
+  @override
+  HomeState createState() => HomeState();
+}
+
+class HomeState extends State<Home> {
+  int count = 0;
+
+  void addCount() {
+    // 调用 setState 时，会调用 HomeState 的 build 方法，实现UI更新
+    setState(() {
+      count++;
+    });
+  }
+
+  // build 方法在初始化时会执行，后续在setState调用时执行
+  @override
+  Widget build(BuildContext context) {
+    // Scaffold 是 Material 库中提供的页面脚手架
+    return new Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+      ),
+      // Center 将组件对齐到屏幕中心
+      body: Center(
+          child: new Column(children: <Widget>[
+        new Text("你点击了多少次"),
+        new Text(
+          '$count',
+          style: Theme.of(context).textTheme.headline,
+        )
+      ])),
+      floatingActionButton: new FloatingActionButton(
+        onPressed: addCount,
+        tooltip: 'Add',
+        child: new Icon(Icons.add),
+      ),
+    );
+  }
+}
+```
+
 ### Flutter Router
 
+#### Navigator
+
+Navigator：flutter 的路由控制的 Widget
+
+1. `Future push(BuildContext context, Route route)`
+2. `bool pop(BuildContext context, [ result ])`
+3. `Future pushNamed(BuildContext context, String routeName,{Object arguments})`
+
+**Navigator.push(BuildContext context, Route route) 等价 Navigator.of(context).push(Route route)**
+
+```dart
+new RaisedButton(onPressed: () {
+  Navigator.push(
+    context,
+    new MaterialPageRoute(builder: (context) {
+      return // 新的Widget实例
+    })
+  );
+}),
+```
+
+##### 路由传参
+
+```dart
+Navigator.push(
+  context,
+  new MaterialPageRoute(builder: (context) {
+    return // 新的Widget实例 new Home(此时可以传参);
+  })
+);
+
+Navigator.pop(context, ''); // 路由返回时传参
+```
+
+#### MaterialPageRoute
+
+继承于 PageRoute，PageRoute 类是一个抽象类，表示占有整个屏幕空间的一个模态路由页面，它还定义了路由构建及切换时过渡动画的相关接口及属性，MaterialPageRoute 是 Material 组件库提供的组件，它可以针对不同平台，实现与平台页面切换动画风格一致的路由切换动画
+
+- builder 是一个 WidgetBuilder 类型的回调函数，它的作用是构建路由页面的具体内容，返回值是一个 widget。我们通常要实现此回调，返回新路由的实例。
+- settings 包含路由的配置信息，如路由名称、是否初始路由（首页）。
+- maintainState：默认情况下，当入栈一个新路由时，原来的路由仍然会被保存在内存中，如果想在路由没用的时候释放其所占用的所有资源，可以设置 maintainState 为 false。
+- fullscreenDialog 表示新的路由页面是否是一个全屏的模态对话框，在 iOS 中，如果 fullscreenDialog 为 true，新页面将会从屏幕底部滑入（而不是水平方向）
+
+### 命名路由
+
+```dart
+class App extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return new MaterialApp(
+      initialRoute: '/', // 初始路由
+      // 命名路由设置
+      routes: {
+        'tip': (context) => new Tip(),
+        'tip1' (context) => new Tip(title: ModalRoute.of(context).settings.arguments.toString()); // 可以还是构造函数传参
+      },
+
+      // 路由钩子，该钩子只对命名路由有效
+      onGenerateRoute:(RouteSettings settings){
+        return MaterialPageRoute(builder: (context){
+            String routeName = settings.name;
+            // 如果访问的路由页需要登录，但当前未登录，则直接返回登录页路由，
+            // 引导用户登录；其它情况则正常打开路由。
+      }),
+      onUnknownRoute: (){}, // 打开不存在路由
+      navigatorObservers: (){}, // 监听所有路由
+    );
+  }
+}
+
+// 跳转
+Navigator.pushNamed(context, 'tip', arguments: 'Hi'); // 命名路由传参，由以下方法获取参数
+
+// 获取参数
+@override
+Widget build(BuildContext context) {
+  var args = ModalRoute.of(context).settings.arguments; // ps dart 所有数据类型都输对象，无论是数字，字符串，null...
+}
+```
+
 ### FLutter 包管理
+
+由 _pubspec.yaml_ 文件管理
+
+- name：应用或包名称。
+- description: 应用或包的描述、简介。
+- version：应用或包的版本号。
+- dependencies：应用或包依赖的其它包或插件。
+- dev_dependencies：开发环境依赖的工具包（而不是 flutter 应用本身依赖的包）。
+- flutter：flutter 相关的配置选项
+
+导入包，以及包路径
+
+```yaml
+# pubspec.yaml
+
+dependencies:
+  cupertino_icons: ^0.1.2
+
+  pkg1:
+    path: xxx #指定路径
+
+  pkg2:
+    git:
+      url: git://github.com/xxx/pkg1.git #指定url
+
+  pkg3:
+    git:
+      url: xx
+      path: xx
+  #同时指定url和本地路径，先寻找url，后寻找path
+```
 
 ## LeetCode
 
 ### 最大正方形
+
+思路：动态规划
+
+dp(i,j) 表示 matrix[i][j]的正方形边长，递推公式：dp(i,j) = matrix[i][j] === 0 ? 0 : min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1;（原理是，只有一个点的左，左上，上全部为 n，时，该正方形的边长为 n+1，任何一个的缺失，都无法组成正方形）
+
+```typescript
+function maximalSquare(matrix: string[][]): number {
+  if (matrix.length < 1) return 0;
+  const store: number[][] = [];
+  let max = 0;
+
+  const col = matrix.length;
+  const row = matrix[0].length;
+
+  for (let i = 0; i < col; i++) {
+    store[i] = [];
+    for (let j = 0; j < row; j++) {
+      if (matrix[i][j] === '0') {
+        store[i][j] = 0;
+      } else {
+        const min: number =
+          i === 0 || j === 0
+            ? 1
+            : Math.min(store[i - 1][j], store[i - 1][j - 1], store[i][j - 1]) +
+              1;
+
+        store[i][j] = min;
+        max = Math.max(max, min);
+      }
+    }
+  }
+
+  return max * max;
+}
+```
 
 [最大正方形](https://leetcode-cn.com/problems/maximal-square/)
