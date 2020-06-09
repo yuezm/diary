@@ -66,7 +66,7 @@ libuv 将 I/O 分为两类，一类是 _Network I/O_，另一类是 _File I/O，
 
 #### 跨平台
 
-使用 libuv 夸平台。libuv 对各个平台操作系统进行抽象，隐藏底层实现细节，向上抛出统一 API
+使用 libuv 跨平台。libuv 对各个平台操作系统进行抽象，隐藏底层实现细节，向上抛出统一 API
 
 ![](../../../static/images/node_cross_platform.png)
 
