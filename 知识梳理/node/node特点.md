@@ -8,7 +8,7 @@ node.js 最初只是单纯的开发一个高性能的 web 服务器，但最后�
 
 ## Node.js 架构
 
-![node.jpeg](../../static/images/node.jpeg)
+![node.jpeg](https://public.keven.work/node%E4%B8%80%E8%A7%88.jpeg)
 
 1. Node Standard Library: 以 javascript 呈现的 node modules，平时用的最多的模块
 2. Node Bindings: Node Standard Library 和底层 c++ 代码沟通的桥梁，隐藏底层实现
@@ -35,7 +35,7 @@ uv_fs_open()、uv_fs_read(); // libuv 根据各个平台，调用不同的API
 
 ### V8
 
-![v8.png](../../static/images/v8.png)
+![v8.png](https://public.keven.work/v8.png)
 
 v8 是 node 的核心之一，v8 主要负责 javascript 的代码解析及运行。
 
@@ -58,7 +58,7 @@ v8 是 node 的核心之一，v8 主要负责 javascript 的代码解析及运�
 
 ### Libuv
 
-![libuv](../../static/images/libuv.png)
+![libuv](https://public.keven.work/libuv.png)
 
 libuv 是 node 的核心之一，libuv 提供 1.事件循环；2.跨平台；3.异步 I/O；4.对 I/O 抽象，将 I/O 抽象为句柄或流
 
@@ -133,7 +133,7 @@ libuv 对 I/O 分为 Network I/O 和 File I/O、User Code...（参照 libuv 架�
 2. 对于 File I/O、User Code...：让一个线程负责计算处理（主线程），让其他线程进行阻塞 I/O 或者非阻塞 I/O 加轮询技术来获取数据（I/O 线程池）。libuv 线程池默认是 4 个，可以通过 _UV_THREADPOOL_SIZE_ 环境变量来设置，
    但不能超过最大 `MAX_THREADPOOL_SIZE = 1024` 个
 
-![](../../static/images/node异步.png)
+![](https://public.keven.work/node%E5%BC%82%E6%AD%A5.png)
 
 ```cpp
 // 举例 fs.open
@@ -185,4 +185,4 @@ child_process，worker_threads，master-worker 工作模式
 
 ### 跨平台
 
-![node跨平台](../../static/images/node跨平台.png)
+![node跨平台](https://public.keven.work/node%E8%B7%A8%E5%B9%B3%E5%8F%B0.png)
