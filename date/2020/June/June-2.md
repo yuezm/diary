@@ -4,6 +4,32 @@
 
 ### interface 扩展
 
+1. 对 node_modules 的扩展
+
+   例如，对 express 的 Request 扩展
+
+   ```typescript
+   declare module express {
+     export interface Request {
+       ...
+     }
+   }
+   ```
+
+2. 对本地模块的扩展
+
+   例如，对同级目录的 type.d.ts 的 Request 进行扩展
+
+   ```typescript
+   declare module './type' {
+     export interface Request{
+       ...
+     }
+   }
+   ```
+
+**特别注意**：declare module 的模块名，为 import 的文件名
+
 ## Flutter
 
 ### 动画
