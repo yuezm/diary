@@ -1,19 +1,18 @@
-# Javascript 面向对象
-
 一直在说面向对象，也在说 Javascript 是面向对象、面向过程、函数式编程的语言。那么到底什么是面向对象？
 
 **面向对象程序设计（Object Oriented Programming，OOP）**：是一种计算机编程架构。OOP 的一条基本原则是计算机程序由单个能够起到子程序作用的单元或对象组合而成。OOP 达到了软件工程的三个主要目标：重用性、灵活性和扩展性，其中核心概念是类和对象。
 
-了解了什么是面向对象，也知道了面向的核心概念是类和对象，那么问题又来了，什么是类？什么是对象？类和对象的关系是什么？
+了解了什么是面向对象，也知道了面向的核心概念是类和对象，那到底什么是类？什么是对象？类和对象的关系是什么？
 
 **对象**：人们研究所研究的事物本身，就是对象，例如一个具体的人、一棵树、一只狗、一条规则等等。对象包含自身属性，方法，实现数据和操作的结合。ps 学数据结构的时候，也看到过这句话，数据结构就是 **数据** + **操作**
 
 **类**：对相同的特性和行为的对象的抽象，例如 Person、Tree、Dog、Rule 等等，其中包含数据的形式和操作。类的实例就是对象
 
-**对象和类的关系**：可以理解为 类是模具，对象是根据模具创造的产品。
+**对象和类的关系**：可以理解为 **类是模具**，对象是**根据模具创造的产品**。
 
 ```typescript
-// 这是一个Person类，是对人的抽象，定义了人的特性，例如名字，年龄，身高，体重等等的数据形式，也定义了人的行为，例如说话，跑步等等
+// 这是一个Person类
+// 对人的抽象，定义了人的特性，例如名字，年龄，身高，体重等等的数据形式，也定义了人的行为，例如说话，跑步等等
 class Person {
   name: string;
   age: number;
@@ -100,7 +99,7 @@ const obj4 = Object.create(null);
 
 1. "." 和 "[]" 区别：
    - "." 一般称为属性访问，且属性必须满足命名规范；"[]" 一般称为键访问，键名可接受任意的 utf-8/unicode 字符串
-   - "." 只能属性只能为常量；"[]" 可以为变量
+   - "." 属性名只能为常量；"[]" 可以为变量
    - "[]" 在 ES6 中可用于计算属性
    - "." 和 "[]" 在 AST 是不一样的，`. => PropertyAccessExpression; [] => ElementAccessExpression`
 
@@ -178,13 +177,13 @@ const proxy = new Proxy(obj, {
 
 每个 Javascript 对象，都有一个 `[[Prototype]]` 的特殊属性, 这就是对象的原型。**[[Prototype]] 本质上是对其他对象的引用**。
 
-_在有的浏览器，可以使用 `__proto__` 访问该属性，比如 Google，但按照 ES 标准，则需使用 `Object.getPrototypeOf()` 访问_
+_在有的浏览器，可以使用 `__proto__` 访问该属性，比如 Google，但按照 ECMAScript 标准，则需使用 `Object.getPrototypeOf()` 访问_
 
 **原型链**：每个对象都存在特殊属性 [[Prototype]]，[[Prototype]] 指向另一个对象，另一个对象也存在 [[Prototype]] 属性...直到为 null 结束，由此对象组成的原型链接就是原型链
 
 **原型链查找**：在 [[GET]] 时，如果当前对象不存在该属性，且该对象的 [[Prototype]] 不为空，则会继续沿着 [[Prototype]] 引用的对象继续查找，直到找到该属性或对象为空为止
 
-#### prototype 和 [[Prototype]]
+#### prototype 和 [[Prototype]] 区别
 
 函数也存在 `prototype` 属性，且在 `new` 构造调用时，生成的对象可以访问 `prototype` 属性、方法，由于都叫*原型*，所以这里对他们进行区分：
 
@@ -199,15 +198,17 @@ Person.prototype.xx = xx;
 var person = new Person();
 ```
 
-![](https://public.keven.work/%E5%8E%9F%E5%9E%8B%E9%93%BE.jpg)
+![](https://user-gold-cdn.xitu.io/2020/7/3/173134eb08dca6de?w=397&h=670&f=png&s=23176)
 
 ### Javascript 的"类"
 
 在 ES6 之前，Javascript 没有类的概念，对象都是由 **`new` 构造调用 构造函数** 生成对象。在 ES6 之后，可以使用 `class` 了，那么是不是意味着 Javascript 在 ES6 后就有类了呢？
 
-这里首选明确一个概念：**Javascript 没有类**，Javascript 中的 class 也只是模拟类的而已。可以这样理解，Javascript 一直使用语法糖来装成有类的样子，其实并没有。下面会从几个方面来说明这个
+#### Javascript "类" 和其他语言类的区别
 
-#### 实例化：类 => 对象
+这里首选明确一个概念：**Javascript 没有类**，Javascript 中的 class 也只是模拟类的而已（可以使用 typescript 或 babel 编译一下，查看编译后的代码）。也可以这样理解，Javascript 一直使用语法糖来装成有类的样子，其实并没有。下面会从几个方面来说明这个
+
+##### 实例化：类 => 对象
 
 **类**：在面向对象中，类是一个模具，通过模具生成事物的步骤叫做实例化，例如 `new Person()`。生成对象后*对象和类互不影响*，且*对象之间互不影响*  
 **Javascript"类"**：Javascript 生成对象时，依靠的是构造调用，而非类的实例化，例如 `new Person()`。Javascript 生成对象不需要依靠类，而是直接生成，生成后，通过 [[Prototype]] 来模拟类，由于 [[Prototype]] 是 prototype 的引用，所以**对象和类、对象之间可以互相影响**
@@ -245,7 +246,7 @@ var p2 = new Person(23);
 p2.ind; // [1, 2, 3, 4]，对象之间互相影响了
 ```
 
-##### Javascript new 简单实现
+**Javascript new 简单实现**：
 
 ```javascript
 function newSelf(construct, ...args) {
@@ -257,7 +258,7 @@ function newSelf(construct, ...args) {
 }
 ```
 
-#### 继承：父类 => 子类
+##### 继承：父类 => 子类
 
 **类**：继承后，子类继承父类的属性和方法  
 **Javascript"类"**：继承后，子类并不是继承父类的属性和方法，而是依靠 [[Prototype]] 去访问父类的 prototype
@@ -283,6 +284,11 @@ YellowPerson.prototype.constructor = YellowPerson;
 
 var yp = new YellowPerson(22);
 ```
+
+##### 多态
+
+**类**：通过函数重载实现多态  
+**Javascript"类"**：通过 [[GET]] 操作时，如果已找到该属性，则不会沿着 [[Prototype]] 继续查询的特性
 
 ### Javascript"面向委托"
 
