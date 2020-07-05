@@ -283,4 +283,117 @@ publisher.notify();
 
 ### 每日温度
 
+思路 1：暴力法之 [i,j] 循环
+思路 2：暴力法之 next 数组，由于温度只是 30-100，所以用长度为 101 的数组存储，**从后往前**循环，以 next[arr[i]]=i 来记录，当遇到新温度时，则在 next 数组中去寻找大于 arr[i]+1 的值
+
+```typescript
+function dailyTemperatures(T: number[]): number[] {
+  const next: number[] = new Array(101);
+
+  for (let i = T.length - 1; i >= 0; i--) {
+    const temp: number = T[i];
+    let min = Number.MAX_SAFE_INTEGER;
+
+    for (let j = temp + 1; j < 101; j++) {
+      if (next[j] !== undefined && next[j] > i) {
+        min = Math.min(min, next[j] - i);
+      }
+    }
+
+    next[temp] = i;
+    T[i] = min === Number.MAX_SAFE_INTEGER ? 0 : min;
+  }
+
+  return T;
+}
+```
+
+思路 3：单调栈，以栈存储温度，当遇到比栈顶的温度大时，则开始出栈**直到栈顶温度大于当前温度或栈空了**
+
+```typescript
+class Stack {
+  private store: number[] = [];
+
+  head(): number | undefined {
+    return this.store[this.store.length - 1];
+  }
+
+  push(v: number): void {
+    this.store.push(v);
+  }
+
+  pop(): number | undefined {
+    return this.store.pop();
+  }
+
+  isEmpty(): boolean {
+    return this.store.length < 1;
+  }
+}
+
+function dailyTemperatures(T: number[]): number[] {
+  const stack: Stack = new Stack();
+  const result: number[] = new Array(T.length).fill(0);
+
+  for (let i = 0; i < T.length; i++) {
+    let v: number;
+    while (!stack.isEmpty() && T[stack.head()!] < T[i]) {
+      v = stack.pop()!;
+      result[v] = i - v;
+    }
+
+    stack.push(i);
+  }
+
+  return result;
+}
+```
+
 ### 三数之和
+
+思路 1：暴力法 i,j,k 三重循环
+思路 2：借鉴两数之和，排序后，固定一个数，然后寻找其余两数（剩下就可以用 双指针 或 hash 了）
+
+```typescript
+function threeSum(nums: number[]): number[][] {
+  nums.sort((a, b) => a - b);
+  const result: number[][] = [];
+
+  let i = 0;
+
+  // 如何确定 i 的 循环终止条件 1. 由于是三个数，i 肯定不能到末尾的，最大限度到 nums.length - 3 的位置； 2. 由于是三数之和等于0 ，排序后，如果 nums[i] > 0 三数之和绝不可能等于0
+  while (i <= nums.length - 3 && nums[i] <= 0) {
+    const t = 0 - nums[i];
+
+    let left = i + 1;
+    let right = nums.length - 1;
+
+    while (left < right) {
+      const _t = nums[left] + nums[right];
+      if (_t === t) {
+        result.push([nums[i], nums[left], nums[right]]);
+        left = leftBiggerMove(left);
+        right = rightSmallerMove(right);
+      } else if (_t > t) {
+        right = rightSmallerMove(right);
+      } else {
+        left = leftBiggerMove(left);
+      }
+    }
+
+    i = leftBiggerMove(i);
+  }
+
+  return result;
+
+  // 移动并去掉重复数
+  function leftBiggerMove(v: number) {
+    while (nums[v] === nums[++v]) {}
+    return v;
+  }
+  function rightSmallerMove(v: number) {
+    while (nums[v] === nums[--v]) {}
+    return v;
+  }
+}
+```
