@@ -2,8 +2,6 @@
 
 ## this 是什么，为什么需要 this
 
-### Javascript 的 this
-
 在 Javascript 中，this 是一个对象，存在于 _构造函数中_ 或 _prototype 对象的方法中_（合并来说就是存在于方法中），**指向当前调用的对象**。
 
 ```javascript
@@ -28,7 +26,7 @@ person.talk(); // talk 方法内的 this 指向 person 对象
 - 使用 this 访问对象的属性
 - 使用 this 访问对象的方法
 
-设想一下，如果不存在 this，那么在方法中如何调用当前对象？如何访问当前对象的属性？难道是像如下这样？
+设想一下，如果不存在 this，那么在方法中如何调用当前对象？如何访问当前对象的属性、方法？难道是像如下这样？
 
 ```javascript
 Person.prototype.talk = function () {
@@ -53,25 +51,73 @@ Person.prototype.talk = function () {
    testThis(); // undefined
    ```
 
-2. **this 指向作用域？**：这个问题有点迷惑性，因为确实有的时候 this 的表现确定像指向作用域，如下代码所示
+2. **this 指向作用域？**：这个问题有点迷惑性，因为确实有的时候 this 的*表现确定像指向作用域*，如下代码所示
 
    ```javascript
    var test = 'Hello Test';
 
    function testThis() {
-     console.log(this.test); // 确定特别像词法作用域
+     console.log(this.test); // 表现得像词法作用域
    }
 
    testThis();
    ```
 
-3. this 是指针
+   是不是表现得很像作用域，~~函数作用域内无法寻找 test，则向上级作用域查找，获取到 test~~，但千万要注意，<font color="red">此处仅仅是表现得像作用域而已，但绝对不是作用域</font>，具体可以通过以下两点来分析
+
+   1. 全局作用域中 var 声明时，声明属性会赋值到全局对象 window 上，表现为 `window.test = "Hello Test";`
+   2. testThis 执行时，内部 this 指向 window，则访问到了 window 的 test 属性
+
+3. **this 是指针？**：在 C/C++中，指针是一个特殊的变量，内部存储的数值解释为**内存的地址**。但在 Javascript 中是无法直接操作内存的，所以 this 是指针这种说法是不严谨的
+
+**Javascript 中是无法操作内存**这句话其实不是十分严谨，因为目前可以使用 TypedArray 在内存中开辟一个数组缓冲区，可以通过该缓冲区来操作内存。但是需要明确一点，Javascript 必须通过 TypedArray 来操作内存，除此之外本身无法操作内存，举个例子
+
+```cpp
+int main(){
+  int n = 1;
+  int *nPoint = &n; // 假装nPoint的数值是 0x7ffeed2c252c
+
+  // 可以通过 *nPoint 来访问该内存，得到内存中存储的值
+}
+```
+
+```javascript
+// 假设给到 javascript *nPoint，或者给到 0x7ffeed2c252c
+*nPoint // 无法识别
+0x7ffeed2c252c // 也无法识别，无法根据该数值读取到该内存的值
+
+// 但可以使用TypedArray
+const t = new Uint8Array(20);
+console.log(t[0]);
+```
 
 ## this 的绑定规则及优先级
+
+### new 构造调用
+
+```javascript
+```
+
+### 显示绑定
+
+```javascript
+```
+
+### 隐式绑定
+
+```javascript
+```
+
+### 默认绑定
+
+```javascript
+```
+
+### 绑定规则优先级
 
 ### this 的绑定例外
 
 1. 忽略 this
-2. 简介引用
+2. 间接引用
 
 ## 词法绑定 this（箭头函数）
