@@ -118,6 +118,8 @@ const proxy = new Proxy(obj, {
 });
 ```
 
+tips：这里只列举了[[GET]]和[[PUT]]，如果你想知道全部的方法，请点这里 --> [Algorithms for Object Internal Methods](http://www.ecma-international.org/ecma-262/5.1/index.html#sec-8.12)
+
 ##### 属性描述符
 
 需要注意的是：属性描述符 `configurable、enumerable、writable` **默认都是 false**
