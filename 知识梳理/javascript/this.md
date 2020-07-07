@@ -15,7 +15,7 @@ Person.prototype.talk = function(){
   return this.name;
 }
 
-const person = new Person();
+var person = new Person();
 person.talk(); // talk 方法内的 this 指向 person 对象
 ```
 
@@ -87,37 +87,141 @@ int main(){
 0x7ffeed2c252c // 也无法识别，无法根据该数值读取到该内存的值
 
 // 但可以使用TypedArray
-const t = new Uint8Array(20);
+var t = new Uint8Array(20);
 console.log(t[0]);
 ```
 
 ## this 的绑定规则及优先级
 
+```javascript
+function Person() {
+  this.name = 'Person';
+}
+```
+
 ### new 构造调用
 
+在 Javascript 中，new 操作符和其他面向对象语言表现得不一致，具体见 [Javascript 面向对象#实例化](./Javascript面向对象.md##实例化)。当进行构造调用时，构造函数内的 this 指向生成的对象
+
 ```javascript
+var p = new Person();
+p.name; // 'Person'，this 指向 p
 ```
 
 ### 显示绑定
 
+Javascript 提供`call、apply、bind` 函数，来显示的绑定 this。如果第一个参数传入非对象（null、undefined 下面会单独介绍）时，则会转化为包装对象
+
 ```javascript
+// MDN 文档
+function.call(thisArg, arg1, arg2, ...);
+function.bind(thisArg[, arg1[, arg2[, ...]]]);
+function.apply(thisArg, [argsArray]);
+```
+
+```javascript
+function binding() {
+  return this.name;
+}
+
+binding.call(new Person()); // 'Person'
 ```
 
 ### 隐式绑定
 
+在调用时，需要考虑该函数是否是被某个对象调用，但需要注意隐式丢失
+
 ```javascript
+var p = {
+  name: 'Person',
+  binding() {
+    return this.name;
+  },
+};
+
+p.binding(); // 'Person'
+```
+
+#### 隐式丢失
+
+很容易出现一种情况，即为隐式丢失，此时 this 在非严格模式下指向 window/global；严格模式下为 undefined
+
+```javascript
+var p = {
+  name: 'Person',
+  binding() {
+    return this.name;
+  },
+};
+
+var fn = p.binding;
+fn(); // undefined
 ```
 
 ### 默认绑定
 
+判定绑定规则不属于以上三种时，则为默认绑定。在非严格模式下 this 指向 window/global；在严格模式下为 undefined
+
 ```javascript
+function binding() {
+  return this.name;
+}
+
+binding(); // undefined
 ```
 
 ### 绑定规则优先级
 
+new 构造调用 > 显示绑定 > 隐式绑定 > 默认绑定。下面举个特别的例子，比较 new 构造调用和显示绑定
+
+```javascript
+var p1 = { name: 'Person1' };
+
+function Person() {
+  console.log(this);
+}
+
+Person.call(p1); // p1 对象
+
+var binding = Person.bind(p1);
+new binding(); // 新的Person对象，而非p1对象
+```
+
 ### this 的绑定例外
 
-1. 忽略 this
-2. 间接引用
+**忽略 this**
+
+在显示绑定时，如果第一个参数传入 null、undefined 时，则会忽略传入的参数，在非严格模式下 this 指向 window/global；严格模式下为 undefined
+
+```javascript
+function binding() {
+  console.log(this);
+}
+
+binding.call(null); // window/global
+```
+
+**间接引用**
+
+像隐式忽略一样，有时候会创建一些见解引用
+
+```javascript
+var p1 = {
+  name: 'p1',
+  talk() {
+    console.log(this.name);
+  },
+};
+
+var p2 = { name: 'p2' };
+
+p1.talk(); // p1;
+(p2.talk = p1.talk)(); // undefined，千万不要以为是 p2
+```
 
 ## 词法绑定 this（箭头函数）
+
+ES6 中，出现了一个新的函数 **箭头函数**，箭头函数的 this 和普通函数的绑定规则完全不同，它遵守如下规则
+
+1. 箭头函数是根据词法作用域寻找 this
+2. 箭头函数根据作用域确定 this 后，**无法对 this 进行修改**，即便是显示绑定也无法修改（由于箭头函数无构造函数，则无法使用 new 语句）
