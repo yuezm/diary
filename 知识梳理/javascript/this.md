@@ -21,10 +21,12 @@ person.talk(); // talk 方法内的 this 指向 person 对象
 
 ### 为什么需要 this
 
-用于指向当前类的实例（指向当前调用对象）
+1. 用于指向当前类的实例（指向当前调用对象）
 
-- 使用 this 访问对象的属性
-- 使用 this 访问对象的方法
+   - 使用 this 访问对象的属性
+   - 使用 this 访问对象的方法
+
+2. 返回当前调用对象，例如用于 _链式调用_
 
 设想一下，如果不存在 this，那么在方法中如何调用当前对象？如何访问当前对象的属性、方法？难道是像如下这样？
 
@@ -93,17 +95,14 @@ console.log(t[0]);
 
 ## this 的绑定规则及优先级
 
-```javascript
-function Person() {
-  this.name = 'Person';
-}
-```
-
 ### new 构造调用
 
 在 Javascript 中，new 操作符和其他面向对象语言表现得不一致，具体见 [Javascript 面向对象#实例化](./Javascript面向对象.md##实例化)。当进行构造调用时，构造函数内的 this 指向生成的对象
 
 ```javascript
+function Person() {
+  this.name = 'Person';
+}
 var p = new Person();
 p.name; // 'Person'，this 指向 p
 ```
@@ -144,7 +143,7 @@ p.binding(); // 'Person'
 
 #### 隐式丢失
 
-很容易出现一种情况，即为隐式丢失，此时 this 在非严格模式下指向 window/global；严格模式下为 undefined
+对象函数赋值很容易出现一种情况， this 在非严格模式下指向 window/global；严格模式下为 undefined
 
 ```javascript
 var p = {
@@ -174,6 +173,10 @@ binding(); // undefined
 
 new 构造调用 > 显示绑定 > 隐式绑定 > 默认绑定。下面举个特别的例子，比较 new 构造调用和显示绑定
 
+由于默认绑定是在其他规则之后的规则，则优先级必然最低，那如何证明 new 构造调用 > 显示绑定 > 隐式绑定 的优先级呢
+
+#### new 构造调用、显示绑定 对比
+
 ```javascript
 var p1 = { name: 'Person1' };
 
@@ -183,9 +186,26 @@ function Person() {
 
 Person.call(p1); // p1 对象
 
-var binding = Person.bind(p1);
-new binding(); // 新的Person对象，而非p1对象
+var Binding = Person.bind(p1); // 由于无法直接使用 new Fn.call()，所以得借助 bind
+new Binding(); // 新的Person对象，而非p1对象，由此可以直到 new构造调用 > 显示绑定
 ```
+
+由此证明： new 构造调用 > 隐式绑定
+
+#### 显示绑定和隐式绑定
+
+```javascript
+var p1 = {
+  name: 'Person1',
+  talk() {
+    console.log(this.name);
+  },
+};
+
+p1.talk.call({ name: 'PersonCall' }); // PersonCall
+```
+
+由此证明：显示绑定 > 隐式绑定
 
 ### this 的绑定例外
 
@@ -217,6 +237,11 @@ var p2 = { name: 'p2' };
 
 p1.talk(); // p1;
 (p2.talk = p1.talk)(); // undefined，千万不要以为是 p2
+// 变形为
+
+var p3 = p1.talk;
+p2.talk = p3;
+p3(); // 默认绑定规则
 ```
 
 ## 词法绑定 this（箭头函数）
@@ -224,4 +249,14 @@ p1.talk(); // p1;
 ES6 中，出现了一个新的函数 **箭头函数**，箭头函数的 this 和普通函数的绑定规则完全不同，它遵守如下规则
 
 1. 箭头函数是根据词法作用域寻找 this
-2. 箭头函数根据作用域确定 this 后，**无法对 this 进行修改**，即便是显示绑定也无法修改（由于箭头函数无构造函数，则无法使用 new 语句）
+2. 箭头函数根据作用域确定 this 后，**无法对 this 进行修改**，即便是显示绑定也无法修改（由于箭头函数无[[Constructor]]，则无法使用 new 语句，所以也不存在构造调用规则了）
+
+### 箭头函数 和普通函数区别
+
+除去上述规则外，还有其他不同
+
+1. 箭头函数无 arguments，如果访问 arguments，也是按照作用域查找
+2. 箭头函数无 prototype
+3. 无法使用 yield，及无法成为 Generator 函数
+
+## Javascript 的 this 到底指向什么
