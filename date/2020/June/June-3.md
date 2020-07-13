@@ -398,8 +398,211 @@ client.findProxy = (uri) {
 
 ### 最长公共前缀
 
+思路 1： 从 0 开始计算，每次遍历一次数组
+
+```javascript
+function longestCommonPrefix(strs: string[]): string {
+  if (strs.length < 1) return '';
+
+  let i = 0;
+  let result = '';
+
+  while (i < strs[0].length) {
+    const s = strs[0][i];
+
+    for (let j = 1; j < strs.length; j++) {
+      if (s !== strs[j][i]) {
+        return result;
+      }
+    }
+
+    result += s;
+    i++;
+  }
+
+  return result;
+}
+```
+
+思路 2：二分法
+
+```javascript
+function longestCommonPrefix(strs: string[]): string {
+  if (strs.length < 1) return '';
+
+  while (strs.length > 1) {
+    const res: string[] = [];
+    for (let i = 0; i < strs.length; i += 2) {
+      res.push(diff(strs[i], strs[i + 1]));
+    }
+    strs = res;
+  }
+  return strs[0];
+}
+
+function diff(s1: string, s2: string | undefined) {
+  if (s2 === undefined) return s1;
+  let i = 0;
+  while (i < s1.length && s1[i] === s2[i]) {
+    i++;
+  }
+  return s1.slice(0, i);
+}
+```
+
 ### 二叉树的序列化
+
+思路 1：BFS
+
+```typescript
+class TreeNode {
+  val: number;
+  left: TreeNode | null;
+  right: TreeNode | null;
+
+  constructor(val: number) {
+    this.val = val;
+    this.left = this.right = null;
+  }
+}
+
+function serialize(root: TreeNode | null): string {
+  if (root === null) return '';
+
+  const queue: (TreeNode | null)[] = [root];
+  let result = '';
+
+  while (queue.length > 0) {
+    const node = queue.pop();
+    if (node === null) {
+      result += ',null';
+    } else {
+      result += `,${node!.val}`;
+      queue.unshift(node!.left);
+      queue.unshift(node!.right);
+    }
+  }
+
+  return result.slice(1);
+}
+
+function deserialize(data: string) {
+  if (data === '') return null;
+  const treeNodeList = data.split(',');
+
+  const root = new TreeNode(Number(data[0]));
+  const queue = [root];
+
+  let i = 1;
+  while (i < treeNodeList.length) {
+    const v = treeNodeList[i];
+    const parent = queue.pop()!;
+
+    const leftVal = treeNodeList[i];
+    const rightVal = treeNodeList[i + 1];
+
+    if (leftVal !== 'null') {
+      queue.unshift((parent.left = new TreeNode(Number(leftVal))));
+    }
+
+    if (rightVal !== 'null') {
+      queue.unshift((parent.right = new TreeNode(Number(rightVal))));
+    }
+
+    i += 2;
+  }
+
+  return root;
+}
+```
+
+思路 2：DFS
+
+```typescript
+```
 
 ### 最佳观光组合
 
+思路 1：暴力法
+思路 2：动态规划
+
+设 max = nums[i] + nums[j] + i - j (i < j) ,由于在循环时 nums[i] + i 可以已知，则求出最大的 nums[j] - i 即可；所以在循环时，需要做两件事情
+
+1. 找到 MAX_I = nums[i] + i 最大值，并记录起来
+2. MAX_J = nums[j] - j 最大值，并每次与 MAX_I 做计算
+
+```typescript
+function maxScoreSightseeingPair(nums: number[]): number {
+  let max = 0;
+  let max_i = nums[0];
+
+  for (let i = 1; i < nums.length; i++) {
+    max = Math.max(max, nums[i] - i + max_i);
+    max_i = Math.max(max_i, nums[i] + i);
+  }
+  return max;
+}
+```
+
 ### 先序遍历还原二叉树
+
+```typescript
+type DeepAndVal = [number, number, number]; // 值，深度，遍历的index
+
+class TreeNode {
+  val: number;
+  left: TreeNode | null;
+  right: TreeNode | null;
+  constructor(val?: number, left?: TreeNode | null, right?: TreeNode | null) {
+    this.val = val === undefined ? 0 : val;
+    this.left = left === undefined ? null : left;
+    this.right = right === undefined ? null : right;
+  }
+}
+
+type DeepAndVal = [number, number, number]; // 值，深度，遍历的index
+
+function recoverFromPreorder(str: string): TreeNode | null {
+  if (str === '') return null;
+
+  const [val, , ind] = findDeepAndVal(str, 0);
+  const root = new TreeNode(val);
+  const queue: TreeNode[] = [root];
+  let i = ind;
+
+  while (i < str.length) {
+    let [val, deep, ind] = findDeepAndVal(str, i);
+    const node = new TreeNode(val);
+
+    if (deep === queue.length) {
+      queue[queue.length - 1].left = node;
+    } else {
+      while (queue.length > deep) {
+        queue.pop();
+      }
+      queue[queue.length - 1].right = node;
+    }
+
+    queue.push(node);
+    i = ind;
+  }
+  return root;
+}
+
+function findDeepAndVal(str: string, i: number): DeepAndVal {
+  let deep = 0;
+  let val = '';
+
+  while (str[i] === '-') {
+    deep++;
+    i++;
+  }
+
+  while (str[i] !== '-' && i < str.length) {
+    val += str[i];
+    i++;
+  }
+
+  return [Number(val), deep, i];
+}
+```

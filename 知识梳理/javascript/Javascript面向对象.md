@@ -277,13 +277,18 @@ p2.ind; // [1, 2, 3, 4]，对象之间互相影响了
 
 **Javascript new 简单实现**
 
+1. 创建一个新的对象 newObj
+2. newObj 赋值[[Prototype]]
+3. 运行构造函数，并使用 call、apply 来指定 this 为 newObj
+4. 判构造函数运行后返回值，如果返回值为对象，则返回该对象，否则返回 newObj
+
 ```javascript
 function newSelf(construct, ...args) {
-  var sc = Object.create(construct.prototype); // [[Prototype]]赋值
-  // 也可以使用 var sc = Object.setPrototypeOf({}, construct.prototype);
-  var result = construct.call(sc, ...args); // 构造函数运行
+  var newObj = Object.create(construct.prototype); // [[Prototype]]赋值
+  // 也可以使用 var newObj = Object.setPrototypeOf({}, construct.prototype);
+  var result = construct.call(newObj, ...args); // 构造函数运行
 
-  return typeof result === 'object' && result !== null ? result : sc;
+  return typeof result === 'object' && result !== null ? result : newObj;
 }
 ```
 
