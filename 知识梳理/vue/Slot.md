@@ -67,14 +67,14 @@ slot 和“这个牌牌”起一样的作用，它表示这个位置被占领了
 // render 函数
 function anonymous() {
   with (this) {
-    return _c('Child', [
+    return _c("Child", [
       _c(
-        'p',
+        "p",
         {
-          attrs: { slot: 'default' },
-          slot: 'default',
+          attrs: { slot: "default" },
+          slot: "default",
         },
-        [_v('slots')]
+        [_v("slots")]
       ),
     ]);
   }
@@ -175,7 +175,7 @@ export function renderMixin (Vue: Class<Component>) {
 ```javascript
 function anonymous() {
   with (this) {
-    return _c('div', [_t('default')], 2);
+    return _c("div", [_t("default")], 2);
   }
 }
 ```
@@ -318,10 +318,10 @@ children 中的，所以此处 `options._renderChildren === parentVnode.componen
 ```javascript
 function anonymous() {
   with (this) {
-    return _c('Child', {
+    return _c("Child", {
       scopedSlots: _u([
         {
-          key: 'default',
+          key: "default",
           fn: function (scope) {
             return [_v(_s(scope.tt))];
           },
@@ -362,7 +362,7 @@ render(h){
 ```javascript
 function anonymous() {
   with (this) {
-    return _c('div', [_t('default', null, { tt: 'slots' })], 2);
+    return _c("div", [_t("default", null, { tt: "slots" })], 2);
   }
 }
 ```
@@ -431,7 +431,7 @@ function scopedSlotFn(scope) {
   return [_v(_s(scope.name))];
 }
 
-scopedSlotFn({ tt: 'slots' });
+scopedSlotFn({ tt: "slots" });
 ```
 
 现在发现 scope 参数作用了吗，就是函数参数，通过该参数来访问子组件内运行时的传值，由此证明**结论 3**
@@ -519,15 +519,12 @@ Child.vue 与作用域插槽的保持不变，编译后的 render 函数如下�
 // 父组件 render
 function anonymous() {
   with (this) {
-    return _c('Child', {
+    return _c("Child", {
       scopedSlots: _u([
         {
-          key: 'default',
+          key: "default",
           fn: function (scope) {
-            return [
-              _c('p', [_v(_s(scope.tt))]),
-              _c('p', [_v(_s(name))]),
-            ];
+            return [_c("p", [_v(_s(scope.tt))]), _c("p", [_v(_s(name))])];
           },
         },
       ]),
@@ -540,7 +537,7 @@ function anonymous() {
 // 子组件 render
 function anonymous() {
   with (this) {
-    return _c('div', [_t('default', null, { tt: 'slots' })], 2);
+    return _c("div", [_t("default", null, { tt: "slots" })], 2);
   }
 }
 ```

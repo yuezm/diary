@@ -69,10 +69,9 @@ function walk(nodes: types.Node, visitor?: Visitor) {
 
 #### 异步 Iterator
 
-```
-for await (const p of ps){
+```javascript
+for await (const p of ps) {
   // 异步执行任务，切记异步任务时推入线程池执行，所以异步人不并非需要等到上一个异步执行完成，即使是 await
-
 }
 ```
 
@@ -88,7 +87,7 @@ for await (const p of ps){
 
 ##### 正则具名组匹配
 
-```
+```javascript
 const str = '2014-02-02';
 const re = /(\d{4})-(\d{2})-(\d{2})/;
 str.match(re); // 原来只能使用match数组下标获取对应值
@@ -109,7 +108,7 @@ console.log(str1.replace(re_n1, '$<A>')); // 使用具名匹配替换$<A>可以�
 
 Javascript 原先只存在线性断言，即匹配在 xx 之前的字符，现在增加后行断言，匹配处于 xx 之后的字符
 
-```
+```javascript
 const str = 'aaa_bbb';
 const re_p = /a*(?=_bbb)/; // 匹配处于_bbb前的字符
 const re_b = /(?<=aaa_)b*/; // 匹配处于aaa_后的字符
@@ -167,9 +166,6 @@ const re_b = /(?<=aaa_)b*/; // 匹配处于aaa_后的字符
 
 ### C++ 扩展
 
-#### NAPI
-
-````
 #### N-API
 
 ```c++
@@ -207,7 +203,7 @@ napi_value Init(napi_env env, napi_value exports) {
 }
 
 NAPI_MODULE(addon, Init);
-````
+```
 
 ## 网络
 
@@ -249,7 +245,7 @@ gRPC: google 在 HTTP2 基础上封装的 RPC 协议。包含 unary，client str
 
 gRPC 的 service 接口是基于 protobuf 定义的，我们可以非常方便的将 service 与 HTTP/2 关联起来。
 
-```
+```javascript
 Path : /Service-Name/{method name}
 Service-Name : ?( {proto package name} "." ) {service name}
 Message-Type : {fully qualified proto message name}
@@ -314,7 +310,7 @@ Content-Type : “application/grpc+proto”
 1. 计算字符出现的频率
 2. 根据频率组成二叉树，如下 Demo 所示
 
-```
+```text
 [1,3,4,6,7]
 
 // 第一二叉树由 1、3组成，父节点为 4
@@ -340,7 +336,3 @@ Content-Type : “application/grpc+proto”
 3. 计算编码时，左树边加 0，右树边加 1，举个栗子，**1 节点的编码为 000，7 节点编码为 11**
 
 #### LZW 算法
-
-```
-
-```
