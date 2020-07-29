@@ -56,9 +56,11 @@ function findKthLargest(nums: number[], k: number): number {
 }
 ```
 
+[数组中第 k 个最大元素](https://leetcode-cn.com/problems/kth-largest-element-in-an-array/)
+
 ### 剑指 Offer 09. 用两个栈实现队列
 
-思路：一个栈存储存储出栈的数据，记为栈1；另一个栈存储入栈的数据，记为栈2。当栈1为空是，从栈2移动数据
+思路：一个栈存储存储出栈的数据，记为栈 1；另一个栈存储入栈的数据，记为栈 2。当栈 1 为空是，从栈 2 移动数据
 
 ```typescript
 class Stack {
@@ -107,4 +109,55 @@ class CQueue {
 }
 ```
 
+[剑指 Offer 09. 用两个栈实现队列](https://leetcode-cn.com/problems/yong-liang-ge-zhan-shi-xian-dui-lie-lcof/)
+
 ### 有序矩阵中第 K 小的元素
+
+1. 思路 1：排序求解
+2. 思路 2：排序优化，由于只需要直到第 k 小，且每个小数组都是有序的，可以使用归并排序+二分
+3. 思路 3：二分查找，太难想了
+
+```text
+1. 确定矩阵最小值为 matrix[0][0]，记为 left
+2. 确定矩阵最大值为 matrix[n-1][n-1]，记为 right
+
+采用二分 mid = left + right >> 1
+
+在矩阵寻找 小于等于 mid 的个数，即为 m
+    如果 m < k，向右寻找
+    如果 m >= k，向左寻找，请注意这里的二分法和普通而发有区别，如果直接取Mid，无法保证mid为矩阵的值
+```
+
+```typescript
+function kthSmallest(matrix: number[][], k: number): number {
+  return half(matrix[0][0], matrix[matrix.length - 1][matrix.length - 1]);
+
+  function half(left: number, right: number): number {
+    if (left >= right) return left;
+
+    const mid = (left + right) >> 1;
+    const m = calculateLte(mid);
+
+    return m >= k ? half(left, mid) : half(mid + 1, right);
+  }
+
+  function calculateLte(num: number) {
+    let sum = 0;
+
+    let x = 0;
+    let y = matrix.length - 1;
+
+    while (x < matrix.length && y >= 0) {
+      while (matrix[x][y] > num && y >= -1) {
+        y--;
+      }
+
+      x++;
+      sum += y + 1;
+    }
+    return sum;
+  }
+}
+```
+
+[有序矩阵中第 K 小的元素](https://leetcode-cn.com/problems/kth-smallest-element-in-a-sorted-matrix/)
