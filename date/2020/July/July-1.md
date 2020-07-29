@@ -4,9 +4,9 @@
 
 ### 数组中第 k 个最大元素
 
-思路 1：API 排序获取
-思路 2：快排，快排的原理是，找到第 i 个位置，第[0,i-1] 比 第个小，第[i+1,maxLength-1] 比第 i 个大，如果此时 i 的位置，正好是 k 的位置，则 nums[i]为目标数
-思路 3：基于堆排序
+1. 思路 1：API 排序获取
+2. 思路 2：快排，快排的原理是，找到第 i 个位置，第[0,i-1] 比 第个小，第[i+1,maxLength-1] 比第 i 个大，如果此时 i 的位置，正好是 k 的位置，则 nums[i]为目标数
+3. 思路 3：基于堆排序
 
 ```typescript
 function findKthLargest(nums: number[], k: number): number {
