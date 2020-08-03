@@ -6,11 +6,12 @@
 
 > Vue 实现了一套内容分发的 API，这套 API 的设计灵感源自 Web Components 规范草案，将 \<slot\> 元素作为承载分发内容的出口
 
-用我自己的理解来说，插槽只是一个**占位**。
+插槽就像主板的内存插口，给你预留了一个位置放入内存条，你可以选择不插入内存条，也可以插入 2G 内存、4G 内存...。回到插槽来说，子组件给你预留了位置放入 VNode，父组件可以传入空，也可以传入 span、div、p 的 VNode
 
-举个不是很恰当的例子来说，公司的停车位有限，去晚了就没地方停车了，机智的你想了个办法，在车位挂了个牌牌“老板专属车位，请勿占领”，周围的人看到这个牌牌，一看是老板的车位，就不敢停这了，这样每次你过来都有个车位可以停车。这个牌牌起的就是一个占位作用，告诉周围的人这个车位被你承包了，你可以后续不停车，也可以停个汽车、自行车、三轮车进去
+根据我们平时书写的代码，我们将插槽分为两个部分
 
-slot 和“这个牌牌”起一样的作用，它表示这个位置被占领了，你可以在这个位置啥都不放，也可以放个 div、p、span、文本...
+- _父组件内的 HTML 模板_，也就是父组件传入的 VNode
+- _子组件内的 slot 组件_，也就是子组件预留插槽的位置
 
 ## 插槽分类
 
@@ -19,27 +20,24 @@ slot 和“这个牌牌”起一样的作用，它表示这个位置被占领了
 **按照是否存在名称**
 
 - 具名插槽
-- 默认插槽（个人比较喜欢叫匿名插槽，感觉和“具名”比较对应）
+- 默认插槽（感觉“匿名插槽”和“具名插槽”比较对应）
 
 **按照是否可以访问子组件数据**
 
 - 普通插槽
 - 作用域插槽
 
-接下来我会慢慢分析这个几个插槽，不过先在这里先给出结论
+接下来我会慢慢分析这个几个插槽，先在这里给出结论，在此之前，明确一点，_组件的产出是 VNode_，基本步骤如下
+
+HTML 模板 ==<sup>编译</sup>==> render 函数 ==<sup>运行</sup>==> VNode
 
 **结论 1** _具名插槽、默认插槽没有区别_，默认插槽就是名称为“default”的具名插槽  
-**结论 2** _普通插槽和作用域插槽本质也没有区别_，具体的会在下面证明，这里可以反推一下，如果普通插槽和作用插槽本质不同，那么 Vue2.6 也不会合并到一起了嘛  
+**结论 2** _普通插槽和作用域插槽本质也没有区别_，都是 VNode，只是产生 VNode 的地方不同
 **结论 3** 作用域插槽依靠**函数传参**来访问子组件的数据
-
-在分析前先明确下面几个点
-
-1. 将插槽分为*父组件内的 HTML 模板*、_子组件内的 slot 组件_，因为这俩的 render 函数不同，且 render 函数运行时机也不同，因此会导致了 Vue 官方文档说到的**编译作用域**的问题
-2. _组件的产出是 VNode_，HTML 模板 ==<sup>编译</sup>==> render 函数 ==<sup>运行</sup>==> VNode
 
 ### 具名插槽、匿名插槽
 
-拿如下代码来举例吧
+拿如下代码来举例
 
 ```vue
 // Parent.Vue
@@ -57,9 +55,9 @@ slot 和“这个牌牌”起一样的作用，它表示这个位置被占领了
 </div>
 ```
 
-#### 父组件内的 HTML 模板
+#### 父组件
 
-**step1 编译 render 函数**
+**step1 编译为 render 函数**
 
 父组件的 HTML 模板编译后的 render 函数如下所示
 
@@ -67,21 +65,21 @@ slot 和“这个牌牌”起一样的作用，它表示这个位置被占领了
 // render 函数
 function anonymous() {
   with (this) {
-    return _c("Child", [
+    return _c('Child', [
       _c(
-        "p",
+        'p',
         {
-          attrs: { slot: "default" },
-          slot: "default",
+          attrs: { slot: 'default' },
+          slot: 'default',
         },
-        [_v("slots")]
+        [_v('slots')]
       ),
     ]);
   }
 }
 ```
 
-有些同学可能看的不太习惯，我们转换下写法。这里有一点需要明确下，`_c` 和 `createElement` 相似，但不是完全一致，但是我们可以在此处使用 `createElement` 来转换为我们熟悉的样子，方便理解
+有些同学可能看的不太习惯，我们转换下写法，改成 `createElement` 写法，但我们要明确一点，`_c` 和 `createElement` 只是相似，不是完全一致的，但是我们可以在此处使用 `createElement` 来转换为我们熟悉的样子，方便理解
 
 ```javascript
 // 转换后的render函数
@@ -96,18 +94,16 @@ render(h) {
 }
 ```
 
-这样是不是熟悉点了，具体 createElement API 请参见 [Vue-渲染函数](https://cn.vuejs.org/v2/guide/render-function.html)
-
 提示
 
-1. 如果不清楚如何查看编译后的 rener 函数的话，可以使用如下函数`Vue.compile($str).render.toString();`来查看
+1. 如果不清楚如何查看编译后的 render 函数的话，可以使用如下函数`Vue.compile($str).render.toString();`来查看
 2. 如果不太清楚 `_c、_v...`等函数具体是什么，可以看文章最后，有贴
 
 **step2 运行 render 函数**
 
 父组件的 render 函数运行后，得到 VNode，如下代码为简化版，只列举个比较重要的几个参数。
 
-这里将整个父组件模板编译后的 VNode 记为**VNodeParent**，将 Child 标签包裹的元素编译后的 VNode 记为 **VNodeSlots** (也就是这一段`<p slot="default">slots</p>`)
+这里将整个父组件模板编译后的 VNode 记为**VNodeParent**，将 Child 标签包裹的元素编译后的 VNode 记为 **VNodeSlots**，方便后续介绍
 
 ```javascript
 const VNodeSlots = [
@@ -147,9 +143,9 @@ export function mountComponent(vm: Component, el: ?Element, hydrating?: boolean)
 }
 ```
 
-这里值得一提的是，其实 `vm._render` 并不是我们上面编译后的 render 函数，真正 render 函数运行于 “src/core/instance/render.js” 文件内，如果你在此处打印 `vm._render.toString()` 会发现和我们上面列出的 render 函数不一致
+这里值得一提的是，其实 `vm._render` 并不是我们上面编译后的 render 函数，真正 render 函数运行于 “src/core/instance/render.js” 文件内，如果你在此处打印 `vm._render.toString()` 会发现和我们上面列出的 render 函数不一致，但此处我们关心的是结果值 vnode，所以不用在意这些细节
 
-```
+```javascript
 // src/core/instance/render.js
 
 export function renderMixin (Vue: Class<Component>) {
@@ -164,9 +160,9 @@ export function renderMixin (Vue: Class<Component>) {
 }
 ```
 
-此处我们关心的是结果值 vnode，所以不用在意这些细节
+至此，父组件分析完毕，进入子组件分析
 
-#### slot 组件
+#### 子组件
 
 **step1 编译 render 函数**
 
@@ -175,7 +171,7 @@ export function renderMixin (Vue: Class<Component>) {
 ```javascript
 function anonymous() {
   with (this) {
-    return _c("div", [_t("default")], 2);
+    return _c('div', [_t('default')], 2);
   }
 }
 ```
@@ -253,7 +249,7 @@ export function resolveSlots(children: ?Array<VNode>, context: ?Component): { [k
 
 **children 参数** options.\_renderChildren， \_renderChildren 赋值于 “src/core/instance/init.js” 的 initInternalComponent 方法内
 
-```
+```javascript
 export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
   ...
   const vnodeComponentOptions = parentVnode.componentOptions;
@@ -263,14 +259,14 @@ export function initInternalComponent (vm: Component, options: InternalComponent
 ```
 
 我们在父组件的 HTML 说道过，Component 的 children 是存储于 VNode.componentOptions.
-children 中的，所以此处 `options._renderChildren === parentVnode.componentOptions.children === VNodeSlots`
+children 中的，所以 `options._renderChildren === parentVnode.componentOptions.children === VNodeSlots`，此处完成父组件到子组件的传值
 
 **context 参数** renderContext，renderContext 为父组件的 Vue 实例
 
 由 resolveSlots 函数我们可得如下
 
 1. 证明**结论 1**
-2. resolveSlots 将数组转换为一个对象，表现为 `[ slotVNode ] ==> { [slotName]: [ slotVNode ]}` 的对象，并返回
+2. resolveSlots 将数组转换为一个对象，表现为 `[ slotVNode ] ==> { [slotName]: [ slotVNode ]}` 的对象
 
 对于我们此处，\$slots 就是一个 `{ default: VNodeSlots }`，至此我们证实了猜想 2
 
@@ -287,7 +283,7 @@ children 中的，所以此处 `options._renderChildren === parentVnode.componen
 }
 ```
 
-至此普通插槽挂载完毕
+至此父组件传入的 VNode 挂载进子组件内
 
 ### 作用域插槽
 
@@ -309,7 +305,7 @@ children 中的，所以此处 `options._renderChildren === parentVnode.componen
 </div>
 ```
 
-#### 父组件 HTML 模板
+#### 父组件
 
 **step1 编译 render 函数**
 
@@ -318,10 +314,10 @@ children 中的，所以此处 `options._renderChildren === parentVnode.componen
 ```javascript
 function anonymous() {
   with (this) {
-    return _c("Child", {
+    return _c('Child', {
       scopedSlots: _u([
         {
-          key: "default",
+          key: 'default',
           fn: function (scope) {
             return [_v(_s(scope.tt))];
           },
@@ -349,11 +345,11 @@ render(h){
 我们看到作用域插槽和普通插槽似乎有点不同
 
 1. **无 children 参数** 普通插槽 HTML 模板时放于 children 参数，而作用域插槽是放于 data 参数中的 scopedSlots 属性下
-2. **参数方式** 普通插槽 children 参数是一个 VNode，而作用域插槽 data.scopedSlots 内部的 value 却是一个函数，函数还带了个参数，参数和我们 `slot-scope = "scope"` 的 "scope" 一致
+2. **传入数据方式** 普通插槽 children 参数是一个 VNode，而作用域插槽 data.scopedSlots 内部的 value 却是一个函数，函数还带了个参数，参数和我们 `slot-scope = "scope"` 的 "scope" 一致
 
 提示，\_u 为 resolveScopedSlots，resolveScopedSlots 函数不过多介绍，函数大概的作用和 resolveSlots 相似，将数组转换为对象，表现为`[key: 'default',fn: HandleFunction}] => { default: HandleFunction }`
 
-#### 子组件 slot
+#### 子组件
 
 **step1 编译 render 函数**
 
@@ -362,7 +358,7 @@ render(h){
 ```javascript
 function anonymous() {
   with (this) {
-    return _c("div", [_t("default", null, { tt: "slots" })], 2);
+    return _c('div', [_t('default', null, { tt: 'slots' })], 2);
   }
 }
 ```
@@ -404,7 +400,7 @@ function renderSlot(name, fallback, props, bindObject) {
 
 我们看向 “src/core/instance/render.js” 文件内的 \_render 方法
 
-```
+```javascript
 // src/core/instance/render.js
 
 Vue.prototype._render = function (): VNode {
@@ -418,9 +414,9 @@ Vue.prototype._render = function (): VNode {
 }
 ```
 
-我们不分析 normalizeScopedSlots，不然有点扯远了，有没有发现一个熟悉的身影 `_parentVnode.data.scopedSlots`，这不是我们在父组件放到 data 属性中的 scopedSlots 嘛。
+我们不分析 normalizeScopedSlots，不然有点扯远了，有没有发现一个熟悉的身影 `_parentVnode.data.scopedSlots`，这不是我们在父组件放到 data 属性中的 scopedSlots 嘛，此处完成父组件到子组件的传值
 
-由此，我们可得在此处，\$scopedSlots 为 `{ default: scopedSlotFn }`
+此处，\$scopedSlots 为 `{ default: scopedSlotFn }`
 
 **step2 运行 render 函数**
 
@@ -431,7 +427,7 @@ function scopedSlotFn(scope) {
   return [_v(_s(scope.name))];
 }
 
-scopedSlotFn({ tt: "slots" });
+scopedSlotFn({ tt: 'slots' });
 ```
 
 现在发现 scope 参数作用了吗，就是函数参数，通过该参数来访问子组件内运行时的传值，由此证明**结论 3**
@@ -494,7 +490,7 @@ const vn = _t('default');
 
 这就是 Vue2.6 合并普通插槽和作用域插槽后的 render 函数，普通插槽也是传递函数，且函数运行于子组件了。但对于 VNode 生成的地方依旧没变，作用插槽 VNode 是在子组件运行 scopedSlotFn 时生成；而普通插槽还是在父组件内就生成 VNode
 
-至此 vue2.6 合并普通插槽和作用域插槽结束，至于 v-slot 只是 API 的变化，如果想了解 v-slot 的编译，请查看 “src/compiler/parser/index.js” 的 processSlotContent 函数
+至此 vue2.6 合并普通插槽和作用域插槽结束，至于 v-slot 只是 API 的变化，如果想了解 v-slot 的编译过程，请查看 “src/compiler/parser/index.js” 的 processSlotContent 函数
 
 ### 编译作用域
 
@@ -513,18 +509,18 @@ const vn = _t('default');
 </Child>
 ```
 
-Child.vue 与作用域插槽的保持不变，编译后的 render 函数如下所示
+Child.vue 如上不变，编译后的 render 函数如下所示
 
 ```javascript
-// 父组件 render
+// 父组件 render 函数
 function anonymous() {
   with (this) {
-    return _c("Child", {
+    return _c('Child', {
       scopedSlots: _u([
         {
-          key: "default",
+          key: 'default',
           fn: function (scope) {
-            return [_c("p", [_v(_s(scope.tt))]), _c("p", [_v(_s(name))])];
+            return [_c('p', [_v(_s(scope.tt))]), _c('p', [_v(_s(name))])];
           },
         },
       ]),
@@ -534,10 +530,10 @@ function anonymous() {
 ```
 
 ```javascript
-// 子组件 render
+// 子组件 render 函数
 function anonymous() {
   with (this) {
-    return _c("div", [_t("default", null, { tt: "slots" })], 2);
+    return _c('div', [_t('default', null, { tt: 'slots' })], 2);
   }
 }
 ```
@@ -554,7 +550,7 @@ function (scope) {
 }
 ```
 
-还记得作用域和闭包吗？拿 name 来说，scopedSlotFn 内部无法寻找到 name，则沿着作用域向上查找，直到 with 语句的 this 为止（this 存在 name 属性），由于 scopedSlotFn 定义于父组件的 render 函数中，那么 this 也就是父组件的 Vue 实例，则获取的自然也是父组件的数据
+还记得作用域和闭包吗？拿 name 来说，scopedSlotFn 内部无法寻找到 name，则沿着作用域向上查找，直到 with 语句的 this 为止（this 存在 name 属性），由于 scopedSlotFn 定义于父组件的 render 函数中，那么 this 也就是父组件的 Vue 实例，则获取的自然也是父组件的数据，那么自然它的编译作用域就是父组件
 
 ## 备注
 
