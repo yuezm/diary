@@ -101,4 +101,47 @@ npm run main # 只解析了第一层嵌套，相等于 node main ./*.*
 
 ### 不同路径
 
+```typescript
+function uniquePathsWithObstacles(obstacleGrid: number[][]): number {
+  // 动态规划
+  // 思路，格子只能向下移动，则每一个格子，都存在两种到达方式，从上到达、从左到达
+  // 则 dp[i][j] = dp[i-1][j] + dp[i][j-1]
+  // 但格子可能障碍物，无法到达，则 dp[i][j] = marix[i][j] == 1 ? 0 : dp[i-1][j] + dp[i][j-1]
+  // 注意溢出
+
+  if (obstacleGrid[0][0] === 1) return 0; // 第一个格子被堵了，直接为0
+
+  const store = new Array(obstacleGrid.length);
+
+  for (let i = 0; i < obstacleGrid.length; i++) {
+    store[i] = [];
+    for (let j = 0; j < obstacleGrid[0].length; j++) {
+      if (i == 0 && j === 0) {
+        store[i][j] = 1;
+        continue;
+      }
+
+      if (obstacleGrid[i][j] === 1) {
+        store[i][j] = 0;
+        continue;
+      }
+
+      let sum = 0;
+
+      if (i > 0) {
+        sum += store[i - 1][j];
+      }
+
+      if (j > 0) {
+        sum += store[i][j - 1];
+      }
+
+      store[i][j] = sum;
+    }
+  }
+
+  return store[obstacleGrid.length - 1][obstacleGrid[0].length - 1];
+}
+```
+
 [不同路径 II](https://leetcode-cn.com/problems/unique-paths-ii/)
