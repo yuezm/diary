@@ -176,6 +176,203 @@ options：
 
 ### 副本集
 
+副本集：维护相同 mongod 数据集的服务，副本集提供冗余和高可用
+
+1. 在不同数据库服务器上提供多个数据副本，提供一定的容错能力，防止单个服务器数据丢失
+2. 副本集包含**数据承载节点**和**仲裁节点**。
+   - 承载数据节点：在承载数据的节点中，存在一个主节点和多个副本节点，主节点接收所有操作，副本节点不能进行操作（但可以配置为只读）。
+   - 仲裁节点：选举节点，当主节点挂了，仲裁节点从副本集内部选举一个新的主节点
+
+**副本集和主从集群区别**
+
+1. 副本集没有固定的主节点，主节点是由副本节点选举出来的
+2. 整个副本集只存在一个主节点和多个副本节点，当前主节点挂了，从剩余的副本节点继续选举
+
+#### 副本集角色
+
+1. Primary: 主节点，接收所有读写操作
+2. Secondary: 副本节点，通过复制主节点的操作以维护相同的数据，不可操作，但可以配置为只读
+3. Arbiter: 仲裁者，不保留任何数据，只具有投票选举。**也可以把仲裁者维护成副本节点**，这样一个节点就同时存在两个角色，可以理解为一个副本节点，同时具有仲裁功能
+
+##### 选举
+
+**选举条件**：
+
+1. 主节点故障
+2. 主节点网络不可达，默认心跳为 10s
+3. 人工干预 rs.stepDown(600);
+
+**选举原则**：
+
+1. 票数最高，并且必须要获得大部分成员的投票。**什么叫大部分成员？**至少大于一半。例如三个投票成员，则大部分至少是 2。当复制集内存活的成员不足大多数时，则整个副本集无法选举出主节点，则服务降级，只提供读取服务
+2. 如果票数相同，则数据新的节点获胜，数据的新旧是通过操作日志 oplog 来对比的。
+
+数据比较时，节点优先级非常重要，优先级可以理解为票数，(0-1000)，如果选举节点优先级为 1000，则它一次投票就为 1000。主节点和其他副节点优先级默认都是 1，选举节点必须是 0，（即不具备选举权，但可以投票）
+
+**选举时，请千万注意大多数，如果只存在一个节点的情况下，尽管他获取的票数肯定是最高，但他不可能是大多数，所以会服务降级**！！！
+
+#### 副本集操作
+
+##### 初始化
+
+当连接上数据库时，需要命令是无法使用的，例如 show dbs，需要初始化副本集才可以进行操作
+
+```shell script
+rs.initiate(configuration); # configuration 不传则为默认配置
+```
+
+[replica-set-configuration-document](https://docs.mongodb.com/manual/reference/replica-configuration/#replica-set-configuration-document)
+
+##### 查看
+
+```shell script
+rs.conf(); # configuration：可选，如果没有配置，则使用默认主节点配置
+rs.config();
+
+cfg 部分属性
+  _id : 副本集配置的存储主键值，默认为副本集名称
+
+  members: 副本节点
+      _id: 主键id
+      host: 地址
+      arbiterOnly: 是否是仲裁节点
+      priority: 权重
+
+  settings : 副本集配置参数
+
+cfg=rs.conf(); # cfg 用 cfg 可以赋值啥的，改变配置
+rs.reconfig(cfg) # 重新加载配置
+
+
+rs.status() # 查看副本集状态
+```
+
+##### 配置
+
+```shell
+rs.add(host, arbiterOnly); # 添加其他副本节点，arbiterOnly是否为仲裁节点
+rs.addArb(host); # 添加仲裁节点
+
+rs.slaveOk(); # 配置副本节点只读为，db.getMongo().setSlaveOk() 简化命令
+rs.slaveOk(true); # 配置副本节点只读
+rs.slaveOk(false); # 取消副节点的读
+```
+
+#### 副本集示例
+
+3 个节点（一主一副一仲裁）
+
+##### 副本成员（PRIMARY）
+
+```yaml
+systemLog:
+  # MongoDB 发送所有日志输出的目标指定为文件
+  destination: file
+
+  # MongoDB 应向其发送所有诊断日志记录信息的日志文件的路径
+  path: '~/mongodb/cluster1/log/mongod.log'
+
+  #当 mongo 或 mongo 实例重新启动时，mongo 或 mongo 会将新条目附加到现有日志文件的末尾。
+  logAppend: true
+
+storage:
+  # MongoDB 实例存储其数据的目录。storage.dbPath 设置仅适用于 mongod。
+  dbPath: '~/mongodb/cluster1/data/db'
+
+  journal:
+    #启用或禁用持久性日志以确保数据文件保持有效和可恢复。
+    enabled: true
+
+processManagement:
+  #启用在后台运行 MongoDB 进程的守护进程模式。
+  fork: true
+
+  #指定用于保存MongoDB的进程ID的文件位置，其中MongoDB将写入其PID
+  pidFilePath: '~/mongodb/cluster1/log/mongod.pid'
+
+net:
+  #服务实例绑定所有IP，有副作用，副本集初始化的时候，节点名字会自动设置为本地域名，而不是ip
+  #bindIpAll: true
+  bindIp: localhost #服务实例绑定的IP
+  port: 27017 #绑定的端口
+replication:
+  replSetName: test_cluster #副本集的名称
+```
+
+##### 副本成员（SECONDARY）
+
+```yaml
+systemLog:
+  # MongoDB 发送所有日志输出的目标指定为文件
+  destination: file
+
+  # MongoDB 应向其发送所有诊断日志记录信息的日志文件的路径
+  path: '~/mongodb/cluster2/log/mongod.log'
+
+  #当 mongo 或 mongo 实例重新启动时，mongo 或 mongo 会将新条目附加到现有日志文件的末尾。
+  logAppend: true
+
+storage:
+  # MongoDB 实例存储其数据的目录。storage.dbPath 设置仅适用于 mongod。
+  dbPath: '~/mongodb/cluster2/data/db'
+
+  journal:
+    #启用或禁用持久性日志以确保数据文件保持有效和可恢复。
+    enabled: true
+
+processManagement:
+  #启用在后台运行 MongoDB 进程的守护进程模式。
+  fork: true
+
+  #指定用于保存MongoDB的进程ID的文件位置，其中MongoDB将写入其PID
+  pidFilePath: '~/mongodb/cluster2/log/mongod.pid'
+
+net:
+  #服务实例绑定所有IP，有副作用，副本集初始化的时候，节点名字会自动设置为本地域名，而不是ip
+  #bindIpAll: true
+  bindIp: localhost #服务实例绑定的IP
+  port: 27018 #绑定的端口
+replication:
+  replSetName: test_cluster #副本集的名称
+```
+
+##### 仲裁者
+
+```yaml
+systemLog:
+  # MongoDB 发送所有日志输出的目标指定为文件
+  destination: file
+
+  # MongoDB 应向其发送所有诊断日志记录信息的日志文件的路径
+  path: '~/mongodb/cluster3/log/mongod.log'
+
+  #当 mongo 或 mongo 实例重新启动时，mongo 或 mongo 会将新条目附加到现有日志文件的末尾。
+  logAppend: true
+
+storage:
+  # MongoDB 实例存储其数据的目录。storage.dbPath 设置仅适用于 mongod。
+  dbPath: '~/mongodb/cluster3/data/db'
+
+  journal:
+    #启用或禁用持久性日志以确保数据文件保持有效和可恢复。
+    enabled: true
+
+processManagement:
+  #启用在后台运行 MongoDB 进程的守护进程模式。
+  fork: true
+
+  #指定用于保存MongoDB的进程ID的文件位置，其中MongoDB将写入其PID
+  pidFilePath: '~/mongodb/cluster3/log/mongod.pid'
+
+net:
+  #服务实例绑定所有IP，有副作用，副本集初始化的时候，节点名字会自动设置为本地域名，而不是ip
+  #bindIpAll: true
+  bindIp: localhost #服务实例绑定的IP
+  port: 27019 #绑定的端口
+replication:
+  replSetName: test_cluster #副本集的名称
+```
+
 ### 分片集群
 
 ## LeetCode
