@@ -252,6 +252,7 @@ rs.status() # 查看副本集状态
 ```shell
 rs.add(host, arbiterOnly); # 添加其他副本节点，arbiterOnly是否为仲裁节点
 rs.addArb(host); # 添加仲裁节点
+rs.remove(); # 删除
 
 rs.slaveOk(); # 配置副本节点只读为，db.getMongo().setSlaveOk() 简化命令
 rs.slaveOk(true); # 配置副本节点只读
@@ -373,12 +374,163 @@ replication:
   replSetName: test_cluster #副本集的名称
 ```
 
-### 分片集群
-
 ## LeetCode
 
 ### 三角形最小路径集合
 
+思路：
+
+1. 动态规划 dp[i][j] = min(dp[i-1][j-1], dp[i-1][j]);
+2. 完成计算后，取最后一排最小值
+
+```typescript
+function minimumTotal(triangle: number[][]): number {
+  const row = triangle.length;
+
+  for (let i = 1; i < row; i++) {
+    for (let j = 0; j < triangle[i].length; j++) {
+      let m1 = Number.MAX_SAFE_INTEGER,
+        m2 = Number.MAX_SAFE_INTEGER;
+
+      if (j > 0) {
+        m1 = triangle[i - 1][j - 1];
+      }
+
+      if (j < i) {
+        m2 = triangle[i - 1][j];
+      }
+
+      triangle[i][j] += Math.min(m1, m2);
+    }
+  }
+  return Math.min(...triangle[row - 1]);
+}
+```
+
+[三角形最小路径集合](https://leetcode-cn.com/problems/triangle/)
+
 ### 不同的二叉搜索树
 
+思路：动态规划，依次选取每一个数为节点，拿 1、2、3 举例
+
+首先选取 1 为根节点 => `f(0) * f(2)`
+首先选取 2 为根节点 => `f(1) * f(1)`
+首先选取 3 为根节点 => `f(2) * f(1)`
+
+递推公式：dp(i) = `dp(0) * dp(i-1) + dp(1) * dp(i-2)...dp(n-1) * dp(1)`
+
+```typescript
+function numTrees(n: number): number {
+  if (n === 0) return 0;
+  const store: number[] = [1, 1];
+  for (let i = 2; i <= n; i++) {
+    let sum = 0;
+    for (let j = 1; j <= i; j++) {
+      sum += store[j - 1] * store[i - j];
+    }
+    store[i] = sum;
+  }
+  return store[n];
+}
+```
+
+[不同的二叉搜索树](https://leetcode-cn.com/problems/unique-binary-search-trees/)
+
 ### 外观数列
+
+思路 1：队列存储，由于这里存在描述数字和真实数字，例如 111 ，描述数字为 3，真实数字为 1，组合为 31，所以需要两个值
+思路 2：递归 fn(n) = handler(fn(n-1));
+
+```typescript
+// 迭代存储
+class Queue {
+  store: number[] = [];
+
+  push(v: number): void {
+    this.store.unshift(v);
+  }
+
+  clear(): void {
+    this.store = [];
+  }
+
+  isEmpty(): boolean {
+    return this.store.length < 1;
+  }
+
+  // 由于空repeatPop无意义，所以不做判断
+  repeatPop(): { value: number; count: number } {
+    let lastIndex = this.store.length - 1;
+    const lastNumberValue = this.store[lastIndex];
+    let count = 0;
+
+    while (lastIndex >= 0 && lastNumberValue === this.store[lastIndex]) {
+      this.store.pop();
+      lastIndex--;
+      count++;
+    }
+
+    return {
+      value: lastNumberValue,
+      count,
+    };
+  }
+}
+
+function countAndSay(n: number): string {
+  let queue = new Queue();
+  const tempQueue = new Queue();
+
+  queue.push(1);
+
+  for (let i = 2; i <= n; i++) {
+    while (!queue.isEmpty()) {
+      const { value, count } = queue.repeatPop();
+
+      tempQueue.push(count);
+      tempQueue.push(value);
+    }
+    queue.store = tempQueue.store;
+    tempQueue.clear();
+  }
+
+  return queue.store.reverse().join('');
+}
+```
+
+```go
+// 递归
+func countAndSay(n int) string {
+	if n == 1 {
+		return "1"
+	}
+
+	prevRes := countAndSay(n - 1)
+	res := ""
+
+	j := 1
+
+	prevValue := prevRes[0]
+	count := 1
+
+	for {
+		if j >= len(prevRes) {
+			break
+		}
+
+		if prevValue == prevRes[j] {
+			count++
+			j++
+		} else {
+			res += strconv.Itoa(count) + string(prevValue)
+
+			prevValue = prevRes[j]
+			count = 1
+			j++
+		}
+	}
+  
+  res += strconv.Itoa(count) + string(prevValue)
+	return res
+}
+```
