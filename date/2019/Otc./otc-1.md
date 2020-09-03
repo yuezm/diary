@@ -251,9 +251,9 @@ void moveZeroes(vector<int>& nums) {
 ### 旋转图像
 
 思路 1：暴力反转
-思路 2：先按照 左中-右中 做上下对称交换，在按照左上-右下 做对角线对称交换
+思路 2：上下反转 + 对角线反转
 
-```
+```cpp
 void rotate(vector<vector<int>>& matrix) {
   int size = matrix.size();
   if (size <= 1) return;
@@ -278,17 +278,17 @@ void rotate(vector<vector<int>>& matrix) {
 
 ### Typescript 类型转换
 
-```
-将
+```typescript
+// 将;
 interface Test {
   name: string;
   age: number;
   show<T, U>(args: Promise<T>): Promise<U>;
 }
 
-转换为
+// 转换为;
 
 type Result = {
   show<T, U>(args: T): U;
-}
+};
 ```
