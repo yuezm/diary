@@ -148,6 +148,14 @@ declare module './code' {
 const t: K.J = { age: O.NAME };
 ```
 
+```typescript
+// 全局扩展
+export {}; // 让ts识别该文件为模块，而不是脚本
+declare global {
+  interface Array<T> {}
+}
+```
+
 ### interface 和 type 异同
 
 **同**：
