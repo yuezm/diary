@@ -501,36 +501,36 @@ function countAndSay(n: number): string {
 ```go
 // 递归
 func countAndSay(n int) string {
-	if n == 1 {
-		return "1"
-	}
+  if n == 1 {
+    return "1"
+  }
 
-	prevRes := countAndSay(n - 1)
-	res := ""
+  prevRes := countAndSay(n - 1)
+  res := ""
 
-	j := 1
+  j := 1
 
-	prevValue := prevRes[0]
-	count := 1
+  prevValue := prevRes[0]
+  count := 1
 
-	for {
-		if j >= len(prevRes) {
-			break
-		}
+  for {
+    if j >= len(prevRes) {
+      break
+    }
 
-		if prevValue == prevRes[j] {
-			count++
-			j++
-		} else {
-			res += strconv.Itoa(count) + string(prevValue)
+    if prevValue == prevRes[j] {
+      count++
+      j++
+    } else {
+      res += strconv.Itoa(count) + string(prevValue)
 
-			prevValue = prevRes[j]
-			count = 1
-			j++
-		}
-	}
-  
+      prevValue = prevRes[j]
+      count = 1
+      j++
+    }
+  }
+
   res += strconv.Itoa(count) + string(prevValue)
-	return res
+  return res
 }
 ```
