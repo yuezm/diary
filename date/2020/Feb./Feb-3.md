@@ -392,7 +392,7 @@ BFC 特点:
 
 弹性布局，将空间按主轴切割，子元素在主轴分开排列
 
-```
+```css
 display: flex、inline-flex;
 
 justify-content: 指定主轴对齐方式
