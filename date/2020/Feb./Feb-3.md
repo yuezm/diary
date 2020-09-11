@@ -404,7 +404,7 @@ align-items: 交叉轴元素对齐方式
 
 网格布局，将空间切分为网格，将元素放入网格中
 
-```
+```css
 display: grid、inline-grid
 justify-content: 指定主轴对齐方式，横向
 align-items: 交叉轴元素对齐方式，纵向
