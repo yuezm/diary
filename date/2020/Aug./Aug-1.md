@@ -149,6 +149,8 @@ var t false = false
 arr := [5]int{} // 长度声明
 arr :=[5][5]int{}
 arr := [...]int{1,2,} // 根据元素推测长度
+
+arrPtr := &arr // 数组指针
 ```
 
 数组声明时，长度即确定了，且无法使用变量来规定长度(const 常量可以)
@@ -224,10 +226,170 @@ const (RED = 1,BLUE = 2) // 也可以当成枚举使用
 
 ### 语句
 
+#### 循环语句
+
+```go
+for init; condition; post { }
+
+# for range 结构
+for index,value := range arr {}
+
+for {
+  // 无限循环，由内部判断什么时候结束
+}
+```
+
+记住，go 无 while 循环，可以使用 for 循环拉模拟 while 循环
+
+```go
+break;
+continue; continue LABEL;
+
+goto LABEL
+
+
+LABEL1:
+ for {
+  if 1 == 1 {
+  break LABEL1
+  continue LABEL1
+  goto LABEL1
+ }
+}
+```
+
+#### 判断
+
+```go
+if condition {
+  ...
+} else if condition {
+  ...
+}else{
+
+}
+
+
+if initialization; condition {
+  ...
+}
+
+// 例如
+
+if i :=10; i < 20{
+
+}
+```
+
+请注意 go 没得三目运算
+
+```go
+switch value {
+  case v1: # v1 可以为值，也可以为表达式，例如 case value < 2:
+    ...    # 不需要break语句
+   case v2:
+   ...
+   default:
+    ...
+}
+```
+
 ## 设计模式
+
+### 设计原则
+
+1. 单一职责原则：描述功能模块关系，表示功能模块的工功能应该单一
+2. 开闭原则：*类、函数、模块*应该是可以被扩展的；但不应该被修改。对于以前的抽象模块，可以做到不修改，不改变现有功能的情况下，进行扩展
+3. 里氏替换原则：子类可以扩展父类的方法，但不应该修改父类的方法
+4. 依赖倒置原则：面向接口编程，我定义好了接口，凡是实现了该接口的类，我都可以使用，而无需关心类的本身
+5. 接口隔离原则：不应该依赖他不需要的接口，可以将接口更小的粒度化，但同时更小粒度会增加复杂度
+6. 迪利特法则（最少知道原则）
+7. 组合复用原则：使用已存在的对象，使之成为新对象的一部分；而不是继承
+
+// 单一职责，开闭原则，里式替换原则，（依赖注入，面向接口编程），最少知道原则，组合
 
 ## LeetCode
 
 ### 颠倒二进制
 
-### 确实的数字
+思路 1. 数字 => 二进制 => 反转 => 数字
+
+```typescript
+function reverseBits(n: number): number {
+  return Number('0b' + n.toString(2).split('').reverse().join('').padEnd(32, '0'));
+```
+
+思路 2. 每次取 n 末尾的数字，然后将 result 左移一位，再加上该末尾数，执行 32 次
+
+```typescript
+/**
+ * @param {number} n - a positive integer
+ * @return {number} - a positive integer
+ */
+var reverseBits = function (n) {
+  let result = 0;
+
+  for (let i = 0; i < 32; i++) {
+    result *= 2; // 因为js为32位有符号整型，所以不能直接使用位运算符
+    result += n & 1;
+    n >>= 1;
+  }
+
+  return result;
+};
+```
+
+[颠倒二进制](https://leetcode-cn.com/problems/reverse-bits/)
+
+### 缺失的数字
+
+思路 1.
+
+```typescript
+function missingNumber(nums: number[]): number {
+  const n = nums.length;
+  let sum = (1 + n) * (n / 2);
+
+  for (const i of nums) {
+    sum -= i;
+  }
+
+  return sum;
+}
+```
+
+思路 2. 位运算，nums XOR，再 [1,n] XOR，由于缺失的数字只会 XOR 一次，则剩余的值为目标值
+
+```typescript
+function missingNumber(nums: number[]): number {
+  let result = 0;
+
+  for (const i of nums) {
+    result ^= i;
+  }
+
+  for (let i = 0; i <= nums.length; i++) {
+    result ^= i;
+  }
+
+  return result;
+}
+```
+
+思路 3. 排序
+
+```typescript
+function missingNumber(nums: number[]): number {
+  nums.sort((a, b) => a - b);
+
+  for (let i = 0; i < nums.length; i++) {
+    if (i !== nums[i]) {
+      return i;
+    }
+  }
+
+  return nums.length;
+}
+```
+
+[缺失的数字](https://leetcode-cn.com/problems/missing-number/)
