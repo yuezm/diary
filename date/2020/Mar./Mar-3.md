@@ -42,7 +42,7 @@ tips: _为什么使用 Handle，而不用指针?_。由于 GC 的原因，Javasc
 
 句柄作用域: 管理句柄的容器。句柄用来引用对象，当句柄数量增加时，管理就和麻烦，所以使用句柄作用域来管理句柄。当句柄作用域销毁时，整个作用域中的句柄同时被销毁
 
-`HandleScope、EscapeHandleScope`
+ `HandleScope、EscapeHandleScope`
 
 ##### Context
 
@@ -90,7 +90,7 @@ Node 对不同种类事件有不同的观察者，_I/O_、_定时器_ 等为生�
 
 Node 单线程仅仅是**主线程是单线程**
 
-单线程优势在于*不用处理状态锁*，*无线程切换消耗*等。劣势在于*无法利用多核 CPU 优势 (child_process)*,_CPU 密集型任务阻塞 (child_process,c++扩展)_，_报错后程序终止 (pm2)_
+单线程优势在于*不用处理状态锁*，*无线程切换消耗*等。劣势在于*无法利用多核 CPU 优势 (child_process)*, _CPU 密集型任务阻塞 (child_process, c++扩展)_，_报错后程序终止 (pm2)_
 
 ## 网络
 
@@ -118,7 +118,7 @@ Node 单线程仅仅是**主线程是单线程**
 
 #### Request
 
-```
+``` 
 Request Line // ps GET / HTTP/1.1
 Request Header
 换行符
@@ -127,7 +127,7 @@ Request Entity
 
 #### Response
 
-```
+``` 
 Response Line // ps 200 ok HTTP/1.1
 Response Header
 换行符
@@ -141,9 +141,11 @@ Response Entity
 3. 多对象传输，可传输文本，二进制文件等，可根据 MIME 定义
 4. *Range*头部设定请求范围，响应状态码为*206*
 5. 内容协商
+
    - 客户端驱动协商: 以 JS 或用户选择使用。ps 看电影选择高清还是超清
    - 服务端渠道协商: 根据客户端传输数据，自动选择。ps Accept 头部
    - 透明协商: 综合客户端驱动和服务端驱动
+
 6. 可压缩，gzip，br，compress...
 
 #### 报文和实体
@@ -158,7 +160,7 @@ HTTP 报文主要用于传输请求和响应的实体主体
 
 #### 网络五层
 
-```
+``` 
 应用层（报文）
 传输层（报文段）
 网络层（数据报）
@@ -206,9 +208,9 @@ MAC 地址描述的是**设备地址**，IP 地址描述的是**子网地址**�
 
 **思路 1: 动态规划**
 
-当下标为 n 时，沿着 n 想钱查找，找到 j 且 arr[j] < arr[n]，则 f(n) = res[j] + 1，如果未找到 j，则 f(n) = 0; 思路 2: 动态规划升级
+当下标为 n 时，沿着 n 想钱查找，找到 j 且 arr[j] < arr[n]，则 f(n) = res[j] + 1，如果未找到 j，则 f(n) = 0; 
 
-递推公式: fn(n) = j ? res[j] + 1 : 1;
+递推公式: fn(n) = 在 j in [0, n-1] 之间取 max(j ? res[j] + 1 : 1); 
 
 **思路 2: 动态规划升级**
 
@@ -221,7 +223,7 @@ res 存储最大增子序列，且 按照升序存储，当遇到新的数时
 
 递推公式: arr[n] > res[res.length -1] ? res[res.length] = arr[n]; fn(n) = res.length : 寻找合适位置替换; fn(n) = res.length
 
-```typescript
+``` typescript
 function lengthOfLIS(nums: number[]): number {
   if (nums.length <= 1) return nums.length;
 
@@ -267,9 +269,9 @@ function lengthOfLIS(nums: number[]): number {
 
 ### 组合最长回文字符
 
-思路: 回文字符可以是如下形式: ...ZXYXZ...、XYYX。由此可推导 将可以整除 2 的字符全部相加，_如果还存在单的字符，则还可以置于中间_
+思路: 回文字符可以是如下形式: ... ZXYXZ...、XYYX。由此可推导 将可以整除 2 的字符全部相加，_如果还存在单的字符，则还可以置于中间_
 
-```
+```typescript
 function longestPalindrome(s: string) {
   if (s.length < 2) return s.length;
 
