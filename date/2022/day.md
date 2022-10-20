@@ -1,4 +1,50 @@
-# weak 10.16~10.23
+# day
+
+## 监控系统
+
+### 埋点
+
+1. 手动埋点
+2. 系统埋点
+3. 全埋点
+
+### 信息捕获
+
+错误信息，性能信息
+
+1. try...catch
+2. window.onerror
+3. window.onunhandledrejection
+4. 各个框架的错误捕获
+5. 白屏捕获
+6. 内存泄漏监控，window.performance.memory
+7. 性能指标
+8. PV、UV、用户停留时间
+
+## css 自定义属性
+
+## ts
+
+### 如何判断 readonly
+
+readonly 比较难判断，只有在泛型尚未赋值时，extends 后的值必须一致，如下所示
+
+```typescript
+type IsEqual<T1, T2> = (<T>() => T extends T1 ? 1 : 0) extends <
+  T
+>() => T extends T2 ? 1 : 0
+  ? 1
+  : 0;
+```
+
+### never 作用
+
+1. 类型计算，例如 `string & number`
+2. Exhaustive Check，例如 if...else，switch...case，提示小伙伴加新的类型时，进行处理
+
+```typescript
+
+```
 
 ## react
 
@@ -146,6 +192,49 @@ jsx -> ReactElement -> Fiber -> ( Schecduler、Reconciler、Renderer)
 
     dispatchAction --> 创建Update对象 --> hooks.queue携带Update对象 --> 递归 get rootFiber --> 调度更新
     ```
+
+### Scheduler
+
+#### 可实现调度的 API
+
+1. setTimeout: 在浏览器端存在 4ms 最小延迟
+2. RAF：RAF 调用时间间隔不确定
+3. requestIdleCallback：兼容性问题；如果浏览器在空闲时，requestIdleCallback(callback) 回调函数的执行间隔是 50ms（W3C 规定）
+4. MessageChannel：较为适合
+5. Promise、MutationObserver：微任务递归调用，会导致卡在清空微任务阶段，导致无法进入浏览器的 layout
+
+由于浏览器每一帧需要进行如下操作，执行宏任务 --> 清空微任务 --> 执行 RAF --> layout、paint --> requestIdleCallback
+
+#### react 如何实现调度，关键方法 schedulerCallback 和 shouldYield
+
+React 和 Scheduler 交互简介
+
+1. Scheduler 提供 schedulerCallback，可以插入一个任务（例如一次更新）
+2. Scheduler 调度该任务（port1.postMessage，在 port2.onmessage 时 从任务队列中取出任务并执行，执行前需要判断是否可以执行 task && !shouldYield）
+3. Reconciler 基于 Fiber 执行更新，在执行前询问 Scheduler 提供的 shouldYield ，是否需要暂停
+4. 如果不需要暂停则继续更新；否则暂停更新，并且 Scheduler 在下一个合适的时间（创建一个新的宏任务）继续调度
+
+具体步骤
+
+调用 schedulerCallback(lane,cb)
+
+1. 根据任务优先级计算出 timeout，此时间仅用于计算任务优先级，优先级越高，timeout 越小
+2. 创建一个任务
+3. 判断当前任务是否为延迟任务，如果是延迟任务，则推送 timerQueue；否则推入 taskQueue，并根据 startTime + time 递增排序（插入排序），以保证高优任务现行执行
+4. port.postMessage，创建一个宏任务
+5. port1.onmessage = cb
+6. 执行 cb --> flushWork --> workLoop
+7. 会遍历 timerQueue，将需要执行的任务移动到 taskQueue，并保证排序
+8. 以 while 形式从 taskQueue 取出任务，判断任务是否 shouldYieldToHost
+
+   - 需要 shouldYieldToHost，则判断当前任务是否结束，如果未结束，则再次 port.postMessage 创建一个宏任务，等待下一次调度（performWorkUntilDeadline 的 hasMoreWork）
+   - 不需要的话进入下一步
+
+9. 执行任务，在执行任务时，可能会因为 shouldYield 而中断，此时再次 port.postMessage 创建一个宏任务，等待下一次调度（performWorkUntilDeadline 的 hasMoreWork）
+
+```js
+shouldYieldToHost 判断 currentTime - startTime < 预设值（5ms），如果满足则继续执行；不满足则中断，即每帧React只要求有5ms的执行时间
+```
 
 ### diff
 
@@ -364,3 +453,44 @@ flushPassiveEffects -> flushPassiveEffectsImpl
 
 3. 在 beginWork 时，进入 LazyComponent 分支，调用 mountLazyComponent，获取加载完成的结果，并根据组件类型在生成 Fiber
 4. Suspense，类似于一种错误捕获机制了，在发生错误时，展示 fallback
+
+## redux
+
+1. 中心化的结构，以一个大对象存储所有的数据，无法拆解领域
+2. 支持异步的话，需要另外的手段，例如 dva（dispatch 满天飞）
+
+## recoil
+
+1. 初始化
+
+   在 atom 调用后，生成一个 node 对象，且由 get，set 等方法，并通过 registerNode 向全局 nodes 注册（nodes.set(node.key, node)）
+
+2. 如何存储数据
+
+   RecoilRoot 内以 Context<AppContext.Provider value={storeRef}> 实现
+
+   storeRef.getState() --> storeStateRef
+
+   storeStateRef 是一种特殊的数据结构（StoreState），其包含 prevTree、currentTree、nextTree，类型都为 TreeState，拿 currentTree 来说，存在树形 atomValues，这个就是存储当前 recoil 状态的地方
+
+3. 如何修改数据 `useSetRecoilState(recoilState)`
+
+   通过 Context API 获取到 storeRef（这也就是 recoil 只能访问最新的 RecoilRoot 的原因），根据 storeRef，可以获取到 storeStateRef
+   期间存在一些列的调用链，最终调用到关键函数 store.replaceState，有如下功能
+
+   - 拷贝老的值 --> 新值
+   - 对新值执行更新 --> 以 recoilState 获取到 key，从而根据 key 向 nodes 获取到 node，调用 node.set 尝试校验合法性（值重复或者想要重置值，但是无需要重置的值），写入 storeStateRef 中（需要注意的时，值并非一次性写入 storeState，而类似是 commit->push，node.set 先 commit，最终在 push）
+   - 返回新值
+   - 通知 Batcher 组件更新（通过 setState({})，迫使组件更新）
+
+4. 如何获取值并响应更新 `useRecoilValue(recoilState)`
+
+   通过 Context API 获取到 storeRef（这也就是 recoil 只能访问最新的 RecoilRoot 的原因），根据 storeRef，可以获取到 storeStateRef
+   以 recoilState 获取到 key，从而根据 key 向 nodes 获取到 node，调用 node.get(store, state)
+
+5. 如何更新 `useRecoilValue(recoilState)`
+   在调用 useRecoilValue hooks 时， subscribeToRecoilValue 想当前的 state.nodeToComponentSubscriptions 注册事件，并设置回调函数
+   当设置数据时，会致使 Batcher 更新，在 Batcher 更新时，调用 endBatch --> sendEndOfBatchNotifications
+   sendEndOfBatchNotifications 中派发 storeState.nodeTransactionSubscriptions 的更新
+   次吃由于在调用 useRecoilValue(recoilState) 时已经向 state.nodeToComponentSubscriptions 注册了事件，此时收到更新后，执行回调函数
+   回调函数中，再次判断是否需要更新（newValue === oldValue?），如果值不一致，则执行更新（通过 setState([])）
