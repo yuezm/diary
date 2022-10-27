@@ -195,15 +195,15 @@ jsx -> ReactElement -> Fiber -> ( Schecduler、Reconciler、Renderer)
 
 ### Scheduler
 
-#### 可实现调度的 API
+#### 可实现调度的 API，为何选择 MessageChannel
+
+由于浏览器每一帧需要进行如下操作，执行宏任务 --> 清空微任务 --> 执行 RAF --> layout、paint --> requestIdleCallback
 
 1. setTimeout: 在浏览器端存在 4ms 最小延迟
 2. RAF：RAF 调用时间间隔不确定
-3. requestIdleCallback：兼容性问题；如果浏览器在空闲时，requestIdleCallback(callback) 回调函数的执行间隔是 50ms（W3C 规定）
+3. requestIdleCallback：兼容性问题；如果浏览器在空闲时；requestIdleCallback(callback) 回调函数的执行间隔是 50ms（W3C 规定）
 4. MessageChannel：较为适合
 5. Promise、MutationObserver：微任务递归调用，会导致卡在清空微任务阶段，导致无法进入浏览器的 layout
-
-由于浏览器每一帧需要进行如下操作，执行宏任务 --> 清空微任务 --> 执行 RAF --> layout、paint --> requestIdleCallback
 
 #### react 如何实现调度，关键方法 schedulerCallback 和 shouldYield
 
@@ -367,7 +367,18 @@ function App() {
 **为什么不使用 async...await 和 Generator**
 
 1. 传播性，使用了 async 或 Generator，后续函数必须都是 async 或 Generator
-2. 在中途插入高优任务时，复杂度太高了
+2. 在中途插入高优任务时，复杂度较高。例如当执行完毕 doExpensiveWorkA 和 doExpensiveWorkB 后，发现 B 组件存在一个高优更新，此时你必须从头再执行一遍 doWork()，而不能复用中途已经执行完毕的 doExpensiveWorkA
+
+   ```js
+   function* doWork(A, B, C) {
+     var x = doExpensiveWorkA(A);
+     yield;
+     var y = x + doExpensiveWorkB(B);
+     yield;
+     var z = y + doExpensiveWorkC(C);
+     return z;
+   }
+   ```
 
 从某种程度上来说 Fiber 和 VNode 相似，例如 Fiber 和 VNode 属性都存储了节点的信息，例如 type,tag,key 等等，也都会对应某个真实的 DOM 节点，但是 Fiber 和 VNode
 
@@ -454,6 +465,33 @@ flushPassiveEffects -> flushPassiveEffectsImpl
 3. 在 beginWork 时，进入 LazyComponent 分支，调用 mountLazyComponent，获取加载完成的结果，并根据组件类型在生成 Fiber
 4. Suspense，类似于一种错误捕获机制了，在发生错误时，展示 fallback
 
+### Context
+
+1. 创建 Context
+
+   ```js
+   const AppContext = createContext(); // 创建一个context对象，且将value数据存储于 _currentValue、_currentValue2 支持多个渲染核心，如ReactDOM 为主渲染核心
+   <AppContext.Provider value={}><AppContext.Provider>
+   ```
+
+2. 在组件内调用
+
+   - 进入 beginWork --> updateFunctionComponent --> reconcileChildren --> useContext
+   - 创建一个 Dependencies 对象，包含当前 ctx 和当前 ctx 的值 memoizedValue
+   - 向当前 Fiber 注册依赖，数据以链表存放于 Fiber.dependencies.firstContext
+   - 根据 ctx 取出存储的值 \_currentValue、\_currentValue2 并返回
+
+   ```js
+   const ctx = useContext(AppContext); // 调用readContext
+   ```
+
+3. 何时更新，拿函数组件来说（beginWork）
+
+   - 进入 beginWork
+   - checkScheduledUpdateOrContext 校验，对比所有 Fiber.dependencies.firstContext 的新老值（memoizedValue 和 ctx.\_currentValue），如果存在一个不相等的，则进入 updateFunctionComponent
+   - 在 updateFunctionComponent 内，还会根据 Fiber.dependencies.lanes, renderLanes，对比是否需要更新，如果需要更新，则会修改更新标识，并删除 Fiber.dependencies.firstContext
+   - 如果修改了更新标识 didReceiveUpdate = true，则无法复用当前 Fiber，进入 reconcileChildren
+
 ## redux
 
 1. 中心化的结构，以一个大对象存储所有的数据，无法拆解领域
@@ -483,7 +521,7 @@ flushPassiveEffects -> flushPassiveEffectsImpl
    - 返回新值
    - 通知 Batcher 组件更新（通过 setState({})，迫使组件更新）
 
-4. 如何获取值并响应更新 `useRecoilValue(recoilState)`
+4. 如何获取值 `useRecoilValue(recoilState)`
 
    通过 Context API 获取到 storeRef（这也就是 recoil 只能访问最新的 RecoilRoot 的原因），根据 storeRef，可以获取到 storeStateRef
    以 recoilState 获取到 key，从而根据 key 向 nodes 获取到 node，调用 node.get(store, state)
@@ -494,3 +532,301 @@ flushPassiveEffects -> flushPassiveEffectsImpl
    sendEndOfBatchNotifications 中派发 storeState.nodeTransactionSubscriptions 的更新
    次吃由于在调用 useRecoilValue(recoilState) 时已经向 state.nodeToComponentSubscriptions 注册了事件，此时收到更新后，执行回调函数
    回调函数中，再次判断是否需要更新（newValue === oldValue?），如果值不一致，则执行更新（通过 setState([])）
+
+## React 16 -> 17 -> 18
+
+17 的重要更新
+
+1. React 合成事件的变化
+
+18 的重要更
+
+1. 合并更新，在 18 以前，只可以对 React 事件处理合并更新，在 18 之后，可以对 Promise，setTimeout 等等处理合并更新，可以由 flushSync 拒绝合并更新
+2. render API，默认开启的 ConCurrent Mode
+3. 组件返回可以为 undefined，18 前只能为 null
+4. Strict Mode 的日志打印，18 后悔打印两次日志，一次为灰色
+5. Suspense 的影响
+
+   - React16 的时候，Suspense 是立即挂载于 DOM，并触发生命周期，但元素不可见（display: hidden）
+   - React18 的时候，Suspense 遵从 resolve 后再渲染到 DOM 中，声明周期也是在目标懒加载组件解析后才触发
+
+6. 新 API
+
+   - flushSync
+   - useId
+   - startTransition 在大任务下，也可以保持响应，就是被 startTransition 回调包裹的 setState 触发的渲染被标记为不紧急渲染，这些渲染可能被其他紧急渲染所抢占
+
+     ```js
+     startTransition(() => {
+       setState();
+     });
+     ```
+
+   - useDeferredValue 返回一个延迟获取的值，只有在没有紧急更新时，返回值才会是新的值
+
+     ```js
+     const [value, setValue] = useState();
+     const newValue = useDeferredValue(value);
+     ```
+
+## hydrate & island
+
+hydrate 就是在 SSR 时，由服务端生成 HTML，但同时需要注入客户端所需要执行的脚本，此为注水
+island 是一种性能优化的方式，将需要 hydrate 和静态组件拆分，对需要 hydrate 组件操作，对静态组件直接下发
+
+## router
+
+### 初始化
+
+1. 创建路由，监听 history 变化,并执行首次跳转。需要注意的是已经没有 hashchange 监听了
+
+   ```js
+   const router = createBrowserRouter(); // createHashRouter
+   ```
+
+   - 创建 history，根据 browser 还是 hash 创建不同的 history（最终调用的也是同一个方法）
+   - 创建 router，并立刻调用 initialize
+     - 1. 调用 listen，监听 popstate 事件，并设置 callback startNavigation【从这有步骤开始，当 history 出现变化时，都会执行 startNavigation】
+     - 2. 首次主动调用 startNavigation
+
+2. 注册 router 状态变化的 callback，简单来说就是在收到状态变化后，比对一下值，如果出现变化则 forceUpdate
+
+3. 数据存储
+   存储数据，使用 Context 存储数据，自定义 Hooks 读取
+
+   ```js
+   <RouterProvider router={router}>
+   ```
+
+### 响应变化
+
+#### startNavigation
+
+1. 路由匹配
+
+   ```js
+   1. 将路由拍平，并计算出路由的得分，得分大致规则如下
+        - 根据 / 切割为数组，基础得分为数组的长度
+        - 如果存在 * 匹配符，则减分
+        - 如果存在 index 则加分
+        - 最后再将数字每一项（除去 * ）的得分加起来（还是有规则 根据 :id、""、其他 得分不同）
+
+    2. 排序
+        - 如果路由得分不同，则降序
+        - 否则，判断路由是否为相似路由（只有最后一位字符不同才为相似路由，例如 "/abc/d" vs "/abc/a"），如果为相似路由则升序；否则保持位置不变
+        - 匹配第一个match的路由
+
+
+   ```
+
+2. NotFound 匹配
+
+   当未匹配到路由时，会去寻找展示 notFoundMatches
+
+3. 判断是否为 hash 路由
+
+   - 如果是 hash 路由，则直接进入 completeNavigation
+   - 否则会进去 action，loader 等等再进去 completeNavigation
+
+#### completeNavigation
+
+1. 路由状态更新，更新 router 的 state，更新时会广播状态的变更
+2. 同步到 history
+
+#### 组件渲染
+
+1. RouterProvider 接收到广播，并强制更新
+2. useRoutes 内 匹配一次路由, matches
+3. renderedMatches
+4. \_renderMatches
+
+   \_renderMatches 简单来说，就是将匹配的 matches 从右侧连接起来
+
+   ```jsx
+   <RouteContext.Provider value={
+     outlet, // reduce的第一个传参，表示从右侧开始到这加一起的组件
+     matches: parentMatches.concat(renderedMatches.slice(0, index + 1)),
+   }>
+     {children}
+   </RouteContext.Provider>
+   ```
+
+5. 处理 `<Outlet/>` 获取 OutletProps 传递的 Context，从 context 获取 outlet 属性（组件）并渲染
+
+## 微前端
+
+1. 优势
+2. 目前普遍的实现
+3. qiankun
+
+### qiankun
+
+和 single-spa 相比
+
+1. HTML entry
+   - JS entry 改造过大，而且一些常见的优化例如拆包，按需加载都无效了
+   -
+2. css 沙箱
+3. js 沙箱
+4. 预加载
+
+#### 注册
+
+调用 API
+
+#### 匹配
+
+single-spa 对事件劫持（hashchange、popstate），在 url 变化时，对比所注册的 apps（activeRule -> activeWhen），获取当前需要进行操作的子应用，例如对于 load
+
+如果 URL 匹配，则进入 load 流程（已 mount 的子应用会进入 unMount 流程），则进入 load 流程
+
+```js
+const appsToLoad = [];
+appsToLoad.push(app);
+
+// appsToUnload: appsToUnload,
+// appsToUnmount: appsToUnmount,
+// appsToLoad: appsToLoad,
+// appsToMount: appsToMount
+```
+
+#### 加载
+
+根据 single-spa 调用链，最终调用 loadApp
+
+1. 下载匹配的子应用 entry，并序列化（import-html-entry 会将模板拆分）
+   - template： 模板
+   - script：外部的 script
+   - style：外部的样式
+   - entry：js entry
+2. 创建沙箱（后续运行时会传入沙箱实例）
+3. 获取子应用的生命周期函数
+4. 执行自定义 mount
+   - beforeUnmount
+   - 子应用生命周期 mount
+   - 将当前沙箱置为 inactive
+   - 区域渲染
+   - afterUnmount
+
+#### 卸载
+
+1. 执行自定义 unmount
+   - beforeUnmount
+   - 子应用的 unmount
+   - 恢复 global 状态，将当前的沙箱置为 inactive
+   - afterUnmount
+   - 清空所渲染
+
+## CSS 沙箱
+
+1. scoped css
+2. shadow DOM
+
+## JS 沙箱的作用及实现
+
+### SnapshotSandbox
+
+mount 时将 window 浅拷贝，并原来的数据备份；当 unmount 时，恢复原来备份的数据
+
+### LegacySandbox
+
+SnapshotSandbox 在恢复时，需要比对所有的 key，效率较低，LegacySandbox 通过记录哪些数据变了来减少对比
+
+- 如果是新增属性，那么存到 addedMap 里
+- 如果是更新属性，那么把原来的键值存到 prevMap，把新的键值存到 newMap
+
+### ProxySandbox
+
+以上两种沙箱只能运行于单例模式，本质也是操作 window，如果同时存在两个自应用则无法满足
+
+ProxySandbox 利用 Proxy 将 window 赋值出来，称为 fakeWindow，即每个自应用可对应一个 fakeWindow
+
+写数据时
+
+1. fakeWindow 没有，但 globalWindow 有，则写入 globalWindow，并同时写入到 fakeWindow
+2. 否则直接写入 fakeWindow
+
+读数据时
+
+1. 对树形是有判断的，例如 top、parent 等从 globalWindow 获取，否则从 fakeWindow
+
+### 如何实现隔离
+
+通过 wrapper 包裹后，进行传参（可想象 cjs）
+
+```js
+function (window){
+  // 以下函数运行的时候，都是参数传递的 window
+}
+```
+
+## 打包工具
+
+webpack
+
+1. 生态较好
+2. 开发体验较差
+3. 构建速度较慢
+4. webpack 也可以使用 esbuild-loader 来提速，用于替换 babel-loader 和 ts-loader¬
+
+vite
+
+1. 生态较 webpack 差
+2. 构建速度快（esbuild 快，go 的天然优势，esbuild 中途减少了 AST 的转换，尽可能的复用 AST）
+3. 开发环境工具（esbuild）和生产环境工具(rollup)不一致
+4. 在大文件或者较多网络请求时，表现较差
+
+why rollup：相较于 webpack 生态一般，但相较于 webpack
+
+- 更加轻量，打包出来的代码更简洁
+- 使用 esm 标准模块（通过插件可以导入现有的 cjs）
+
+### webpack
+
+#### 启动
+
+会走一遍完成的 bundle 的过程
+
+file string => module => AST(dependence 分析) => module
+
+1. resolve：根据 entry 定位入口文件路径，创建一个 Module 对象
+2. load：读取入口文件
+3. transform：调用 loader 处理
+4. parse：将处理好的文件解析为 AST，并分析 AST 找出依赖，并对依赖处理（从步骤 1 循环，知道依赖处理完毕）
+
+对 module graph 处理
+
+1. tree shaking
+2. module 分类，根据静态加载还是动态加载，将 module 分为 init chunk 和 async chunk
+3. 优化 init chunk 和 async chunk 重复 module
+4. 分离 chunk，例如处理三方依赖
+5. 根据 chunk 获取到 template，并根据 template 输出
+
+#### 热更新
+
+watch 文件变化，根据变化的文件，再走一次 bundle 流程，当 bundle 完后，通过 ws 通知浏览器获取新的打包文件
+
+### vite
+
+开发环境
+
+1. 使用 esbuild 打包外部的依赖
+2. 响应浏览器的 `<script type="module">` 发起的请求
+
+生产环境
+
+1. 使用 rollup 打包
+
+#### 启动
+
+vite 没有启动 bundle 这一个步骤，他是通过浏览器请求并 hack 此次请求，通过对浏览器请求的资源进行 resolve -> load -> transform -> parse
+
+#### 热更新
+
+watch 文件变化，通知浏览器去加载变化的文件，然后自动会走 resolve -> load -> transform -> parse 的流程
+
+### rollup
+
+## PWA & Service Worker
+
+what、why、how
