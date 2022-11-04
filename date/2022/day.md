@@ -29,12 +29,8 @@
 
 readonly 比较难判断，只有在泛型尚未赋值时，extends 后的值必须一致，如下所示
 
-```typescript
-type IsEqual<T1, T2> = (<T>() => T extends T1 ? 1 : 0) extends <
-  T
->() => T extends T2 ? 1 : 0
-  ? 1
-  : 0;
+```js
+type IsEqual<T1, T2> = (<T>() => T extends T1 ? 1 : 0) extends (<T>() => T extends T2 ? 1 : 0) ? 1: 0;
 ```
 
 ### never 作用
@@ -77,27 +73,25 @@ jsx -> ReactElement(VNode) -> Reconciler -> Renderer
 
 1. 根据变化，渲染
 
-React 现有架构如下：Schecduler -> Reconciler -> Renderer
+React 现有架构如下：Scheduler -> Reconciler -> Renderer
 
-Schecduler：任务调度器，判断浏览器当前是否有空闲时间
-Reconciler（render 阶段）：协调器，根据 Schecduler 来判断当前是否执行，在执行时，render() => Fiber，并对需要更新的 Fiber 打上标记
-Renderer（commit 阶段）：渲染器
+Scheduler：任务调度器，判断浏览器当前是否有空闲时间
+Reconciler（render 阶段）：协调器，找出变化的组件。根据 Scheduler 来判断当前是否执行，在执行时，render() => Fiber，并对需要更新的 Fiber 打上标记
+Renderer（commit 阶段）：渲染器，将变化的组件渲染出来。
 
-jsx -> ReactElement -> Fiber -> ( Schecduler、Reconciler、Renderer)
+jsx -> ReactElement -> Fiber -> ( Scheduler、Reconciler、Renderer)
 
 优化点
 
 1. 递归 -> 循环，将同步的不大可打断的任务 -> 异步的可被打断的任务
-2. 增加 Schecduler，可在浏览器空闲时调用
-3. Schecduler 和 Reconciler（render 阶段）随时可被高优任务打断，但是 Renderer（commit 阶段）不可打断
+2. 增加 Scheduler，可在浏览器空闲时调用
+3. Scheduler 和 Reconciler（render 阶段）随时可被高优任务打断，但是 Renderer（commit 阶段）不可打断
+
+Fiber 如何更新
 
 ### React 从 createRoot 到组件更新的流程
 
 前置知识，后续全部以函数组件、HTML 标签为例，class 组件不分析
-
-```js
-函数组件会被编译为 ReactElement，在React17前以createElement运行，在React17后，编译器自动从jsx报引入，无需在手动引入
-```
 
 1. ReactDOM.createRoot 创建 FiberRootNode 和 rootFiber
 
@@ -140,7 +134,7 @@ jsx -> ReactElement -> Fiber -> ( Schecduler、Reconciler、Renderer)
 
 5. render - beginWork
 
-   根据当前传入 Fiber，生成子 Fiber
+   根据当前传入 Fiber，创建或者复用 Fiber
 
    update：是否可以复用 fiber
 
@@ -148,6 +142,15 @@ jsx -> ReactElement -> Fiber -> ( Schecduler、Reconciler、Renderer)
    - 如果复用失败，则进入创建 Fiber 逻辑，并进入 reconcileChildren（创建 Fiber 并 Diff），并给需要操作的 Fiber 赋予 effectTag
 
    mount：进入创建 Fiber 逻辑，根据传入的 Fiber tag，执行不同的函数，如 FunctionComponent 在执行 renderWithHooks 时，进入 reconcileChildren(创建 Fiber)，
+
+   ```js
+   updateFunctionComponent(){
+    ...
+    renderWithHooks()
+    ...
+    reconcileChildren();
+   };
+   ```
 
 6. render - completeWork
 
@@ -160,19 +163,24 @@ jsx -> ReactElement -> Fiber -> ( Schecduler、Reconciler、Renderer)
 
 7. commit - before mutation(commitBeforeMutationEffects)
 
-   在 before mutation 主函数之前 调度 useEffect
-   执行 before mutation 主函数，其中包含 getSnapshotBeforeUpdate 的生命周期
+   1. 处理 DOM 节点删除后的一些 auto focus，blur 逻辑
+   2. 在 before mutation 主函数之前 调度 useEffect
+   3. 执行 before mutation 主函数，其中包含 getSnapshotBeforeUpdate 的生命周期
 
 8. commit - mutation(commitMutationEffects)
-   根据 effectTag 处理真实的 DOM 操作
 
-   1. HostComponent
+   1. 根据 effectTag 处理真实的 DOM 操作
+   2. componentWillUnmount
+   3. 调度 useEffect 销毁函数（删除操作时）
+   4. useLayoutEffect 销毁函数
+
+   5. HostComponent
 
       - Placement(插入): 操作 DOM API
       - Update(插入)：
       - Deletion（删除）：删除节点
 
-   2. FunctionComponent
+   6. FunctionComponent
 
       - Placement(插入): 操作 DOM API
       - Update(插入)：同步执行 useLayoutEffect 销毁函数
@@ -184,6 +192,7 @@ jsx -> ReactElement -> Fiber -> ( Schecduler、Reconciler、Renderer)
 
    1. 对于 FunctionComponent：调用 useLayoutEffect 回调函数（commitHookLayoutEffects），调度 useEffect 的销毁与回调函数(flushPassiveEffectsImpl)
    2. ref 处理，对 ref 赋予 DOM 元素的值、ClassComponent 实例、FunctionComponent 的值
+   3. componentDidMount、componentDidUpdate
 
 10. 如 setState 触发更新，通过 dispatchAction 来触发更新
 
@@ -220,7 +229,7 @@ React 和 Scheduler 交互简介
 
 1. 根据任务优先级计算出 timeout，此时间仅用于计算任务优先级，优先级越高，timeout 越小
 2. 创建一个任务
-3. 判断当前任务是否为延迟任务，如果是延迟任务，则推送 timerQueue；否则推入 taskQueue，并根据 startTime + time 递增排序（插入排序），以保证高优任务现行执行
+3. 判断当前任务是否为延迟任务，如果是延迟任务，则推送 timerQueue；否则推入 taskQueue，并根据 sortIndex = startTime + time 为依据，实现二叉堆，以保证高优任务现行执行
 4. port.postMessage，创建一个宏任务
 5. port1.onmessage = cb
 6. 执行 cb --> flushWork --> workLoop
@@ -296,7 +305,7 @@ Fiber {
 
 UpdateQueue {
   baseState: 本次更新前fiber的状态
-  firstBaseUpdate，lastBaseUpdate: 因优先级不够，无法执行的 Update
+  firstBaseUpdate，lastBaseUpdate:  Update，因优先级不够，无法执行的 Update
   shared: { pending:null }：本次更新的 Update
 
 }
@@ -307,7 +316,7 @@ Update {
   payload: 挂载的数据
   callback: 更新后的回调函数
   lastEffect: Effect，在函数组件中，还存在，单链表
-  next
+  next: Update
 }
 
 Effect {
@@ -393,7 +402,7 @@ hooks 存储在 fiber 中，由 memoizedState 存储的单链表
 
 此时如果 dispatch 触发，则创建一个 Update 对象，以循环单链表形式记录于 Hooks.queue.pending 上，开启调度
 
-在 update 的阶段时，在调用 useState 时，根据 Fiber.memoizedState 找到对应的 Hooks 节点，执行 Hooks.queue.pending 上的所有更新
+在 update 的阶段时，在调用 useState 时，根据 Fiber.memoizedState 找到对应的 Hooks 节点，将 Hooks.queue.pending 拼接到 baseQueue 上， 并执行所有更新
 
 此时有个注意点，如果在 render 阶段可再次触发更新，react 以一个 didScheduleRenderPhaseUpdate 来标记
 
@@ -401,7 +410,7 @@ hooks 存储在 fiber 中，由 memoizedState 存储的单链表
 Hooks {
   memoizedState: 当前hooks的值，根据Hooks不同，保存不同的值，例如useState保存的state的值
   baseState: 当前hooks的值
-  baseQueue: 上一次更新，由于优先级的关系未执行的Update
+  baseQueue: Update, 上一次更新，由于优先级的关系未执行的Update
   queue: Queue
   next: 指针
 }
@@ -446,14 +455,14 @@ flushPassiveEffects -> flushPassiveEffectsImpl
 
 ### memo
 
-1. memo 返回一个 对象，包含 $$type 标记为 memo ReactElement，和 compare 方法
+1. memo 返回一个 ReactElement，包含 $$type 标记为 memo ReactElement，和 compare 方法
 2. 在 beginWork 时，进入 MemoComponent 分支比较，如果满足一定条件例如 compare 为 null 等等，进入 SimpleMemoComponent
 3. MemoComponent -> 对比 props；SimpleMemoComponent --> 无需对比 props，但需要比较 context 是否更新
 
 ### lazy
 
 1. import() 借助 webpack 实现代码分割
-2. lazy：返回一个对象，$$type 标记 lazy ReactElement，及加载组件的方法（lazyInitializer）
+2. lazy：返回一个 ReactElement，$$type 标记 lazy ReactElement，及加载组件的方法（lazyInitializer）
 
    ```js
    lazyInitializer;
@@ -501,9 +510,13 @@ flushPassiveEffects -> flushPassiveEffectsImpl
 
 1. 初始化
 
-   在 atom 调用后，生成一个 node 对象，且由 get，set 等方法，并通过 registerNode 向全局 nodes 注册（nodes.set(node.key, node)）
+   在 atom() 调用后，生成一个 node 对象，且由 get，set 等方法，并通过 registerNode 向全局 nodes 注册（nodes.set(node.key, node)）
 
 2. 如何存储数据
+
+   ```js
+   <RecoilRoot />
+   ```
 
    RecoilRoot 内以 Context<AppContext.Provider value={storeRef}> 实现
 
@@ -538,6 +551,7 @@ flushPassiveEffects -> flushPassiveEffectsImpl
 17 的重要更新
 
 1. React 合成事件的变化
+2. 函数组件会被编译为 ReactElement，在 React17 前以 createElement 运行，在 React17 后，编译器自动从 jsx 报引入，无需在手动引入
 
 18 的重要更
 
@@ -589,7 +603,7 @@ island 是一种性能优化的方式，将需要 hydrate 和静态组件拆分�
      - 1. 调用 listen，监听 popstate 事件，并设置 callback startNavigation【从这有步骤开始，当 history 出现变化时，都会执行 startNavigation】
      - 2. 首次主动调用 startNavigation
 
-2. 注册 router 状态变化的 callback，简单来说就是在收到状态变化后，比对一下值，如果出现变化则 forceUpdate
+2. RouterProvider 内注册 router 状态变化的 callback，简单来说就是在收到状态变化后，比对一下值，如果出现变化则 forceUpdate
 
 3. 数据存储
    存储数据，使用 Context 存储数据，自定义 Hooks 读取
@@ -614,9 +628,9 @@ island 是一种性能优化的方式，将需要 hydrate 和静态组件拆分�
     2. 排序
         - 如果路由得分不同，则降序
         - 否则，判断路由是否为相似路由（只有最后一位字符不同才为相似路由，例如 "/abc/d" vs "/abc/a"），如果为相似路由则升序；否则保持位置不变
+
+    3. 匹配
         - 匹配第一个match的路由
-
-
    ```
 
 2. NotFound 匹配
@@ -676,7 +690,7 @@ island 是一种性能优化的方式，将需要 hydrate 和静态组件拆分�
 
 #### 匹配
 
-single-spa 对事件劫持（hashchange、popstate），在 url 变化时，对比所注册的 apps（activeRule -> activeWhen），获取当前需要进行操作的子应用，例如对于 load
+single-spa 对事件劫持（hashchange、popstate），在 url 变化时，调用 getAppChanges() 对比所注册的 apps（activeRule -> activeWhen），获取当前需要进行操作的子应用，例如对于 load
 
 如果 URL 匹配，则进入 load 流程（已 mount 的子应用会进入 unMount 流程），则进入 load 流程
 
@@ -692,19 +706,19 @@ appsToLoad.push(app);
 
 #### 加载
 
-根据 single-spa 调用链，最终调用 loadApp
+根据 single-spa 调用链，最终调用 loadApp，最终会返回一个包含各个生命周期的对象
 
 1. 下载匹配的子应用 entry，并序列化（import-html-entry 会将模板拆分）
    - template： 模板
    - script：外部的 script
    - style：外部的样式
-   - entry：js entry
+   - execScripts：js entry
 2. 创建沙箱（后续运行时会传入沙箱实例）
 3. 获取子应用的生命周期函数
 4. 执行自定义 mount
    - beforeUnmount
    - 子应用生命周期 mount
-   - 将当前沙箱置为 inactive
+   - 将当前沙箱置为 active
    - 区域渲染
    - afterUnmount
 
@@ -717,27 +731,27 @@ appsToLoad.push(app);
    - afterUnmount
    - 清空所渲染
 
-## CSS 沙箱
+#### CSS 沙箱
 
 1. scoped css
 2. shadow DOM
 
-## JS 沙箱的作用及实现
+#### JS 沙箱的作用及实现
 
-### SnapshotSandbox
+##### SnapshotSandbox
 
 mount 时将 window 浅拷贝，并原来的数据备份；当 unmount 时，恢复原来备份的数据
 
-### LegacySandbox
+##### LegacySandbox
 
-SnapshotSandbox 在恢复时，需要比对所有的 key，效率较低，LegacySandbox 通过记录哪些数据变了来减少对比
+SnapshotSandbox 在恢复时，需要比对所有的 key，效率较低，LegacySandbox 使用 Proxy 代理，在 set 时，记录子应用改变的属性，记录哪些数据变了来减少对比
 
 - 如果是新增属性，那么存到 addedMap 里
 - 如果是更新属性，那么把原来的键值存到 prevMap，把新的键值存到 newMap
 
-### ProxySandbox
+##### ProxySandbox
 
-以上两种沙箱只能运行于单例模式，本质也是操作 window，如果同时存在两个自应用则无法满足
+以上两种沙箱只能运行于单例模式，本质也是操作 window，如果同时存在两个子应用则无法满足
 
 ProxySandbox 利用 Proxy 将 window 赋值出来，称为 fakeWindow，即每个自应用可对应一个 fakeWindow
 
@@ -748,9 +762,9 @@ ProxySandbox 利用 Proxy 将 window 赋值出来，称为 fakeWindow，即每�
 
 读数据时
 
-1. 对树形是有判断的，例如 top、parent 等从 globalWindow 获取，否则从 fakeWindow
+1. 对属性是有判断的，例如 top、parent 等从 globalWindow 获取，否则从 fakeWindow
 
-### 如何实现隔离
+##### 如何实现隔离
 
 通过 wrapper 包裹后，进行传参（可想象 cjs）
 
@@ -759,6 +773,10 @@ function (window){
   // 以下函数运行的时候，都是参数传递的 window
 }
 ```
+
+### micro app
+
+### wujie
 
 ## 打包工具
 
@@ -827,6 +845,50 @@ watch 文件变化，通知浏览器去加载变化的文件，然后自动会�
 
 ### rollup
 
+### turbopack
+
+1. rust 天然优势
+2. incremental computation
+   - 增量计算
+   - 利用 turbo 实现并行的使用多个核心
+   - 缓存，对函数的调度运行结果进行缓存，避免二次计算
+3. Lazy bundling，按需打包（dev）
+
 ## PWA & Service Worker
 
 what、why、how
+
+## 浏览器 JS 代码执行
+
+编译语言：源代码 => AST => 字节码 => 二进制代码
+JS：源代码 => AST => Ignition => 字节码 => 机器码（其中 Ignition 会手机代码的执行过程，发现如果有热代码，则使用 Turbofan 编译为机器码）
+
+为什么需要使用字节码？原来架构中是没有字节码的，直接将 AST 转化为机器码执行，但是随着手机的流行，V8 需要大量的内存去存储转换后的机器码，手机内存可能没这么大，所以对架构进行了改进。相对来说，字节码比机器码占用空间少很多
+
+## 报警方案
+
+1. 接入日志平台
+
+   - 平台建设
+   - SDK 建设
+
+2. 信噪比
+
+   - 明确报警等级
+   - 消除无用报警，或消除暂时不关注的报警
+   - 聚合同类型报警
+   - 合理降级错误
+   - 确定报警的阈值
+
+3. 报警信息
+
+   - 日志上报规范
+   - 明确报警等级
+   - 关键节点日志（开发宣讲，CR）
+   - info 日志
+
+4. 跟进、复盘
+
+   - 出现报警的跟进人
+   - 每周的报警分析
+   - 分析阈值的合理性
