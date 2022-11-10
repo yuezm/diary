@@ -686,13 +686,42 @@ island 是一种性能优化的方式，将需要 hydrate 和静态组件拆分�
 
 #### 注册
 
-调用 API
+调用 qiankun API registerMicroApps => single-sap 的 registerApplication
 
-#### 匹配
+注册时，并声明了当前的 loadApp 方法
 
-single-spa 对事件劫持（hashchange、popstate），在 url 变化时，调用 getAppChanges() 对比所注册的 apps（activeRule -> activeWhen），获取当前需要进行操作的子应用，例如对于 load
+```js
+function registerMicroApps() {
+  registerApplication({
+    name: App_Name,
+    app: () => {
+      // qiankun 的 loadApp 方法
+    },
+  });
+}
+```
 
-如果 URL 匹配，则进入 load 流程（已 mount 的子应用会进入 unMount 流程），则进入 load 流程
+#### 匹配 & 加载
+
+```js
+url change
+
+reroute
+  - getAppChanges()
+  - performAppChanges()
+      - unmountAllPromise
+      - toLoadPromise -> loadApp
+      - tryToBootstrapAndMount
+        - bootstrap
+        - unmountAllPromise 执行完毕
+        - mount
+
+```
+
+single-spa 对事件劫持（hashchange、popstate），在 url 变化时，调用 getAppChanges() 对比所注册的 apps「activeRule -> activeWhen 与当前 URL 对比」、「当前 app 的状态」，来获取当前需要进行操作的子应用，例如
+
+- 对于 load，如果 URL 匹配，则进入 load 流程（已 mount 的子应用会进入 unMount 流程），则进入 lappsToLoad 数组
+- 对于 unMount，如果 URL 不匹配，且当前处于 MOUNTED 状态，则进入 appsToUnmount 数组
 
 ```js
 const appsToLoad = [];
@@ -704,18 +733,32 @@ appsToLoad.push(app);
 // appsToMount: appsToMount
 ```
 
-#### 加载
+single App 等待 app 加载完毕后，就会去执行各个阶段的生命周期 performAppChanges()
 
-根据 single-spa 调用链，最终调用 loadApp，最终会返回一个包含各个生命周期的对象
+1. 以 promise 方式执行所有的卸载事件，unload,unmount，联合为一个 Promise，unmountAllPromise
 
-1. 下载匹配的子应用 entry，并序列化（import-html-entry 会将模板拆分）
-   - template： 模板
-   - script：外部的 script
-   - style：外部的样式
-   - execScripts：js entry
-2. 创建沙箱（后续运行时会传入沙箱实例）
-3. 获取子应用的生命周期函数
-4. 执行自定义 mount
+2. 对于 appsToLoad ，是会调用 toLoadPromise(app);
+
+   single spa 根据 appsToLoad 调用 loadApps 去加载，最终调用的是 app.loadApp 的方法
+
+   single spa loadApps => app.loadApp => qiankun loadApp，会返回一个包含各个生命周期的对象，根据 single-spa 调用链的生命周期进行调用
+
+   1. 下载匹配的子应用 entry，并序列化（import-html-entry 会将模板拆分）
+
+      - template： 模板
+      - script：外部的 script
+      - style：外部的样式
+      - execScripts：js entry
+
+   2. 将 template 渲染至 DOM
+   3. 创建沙箱（后续运行时会传入沙箱实例）
+   4. 获取 js entry 的生命周期函数
+   5. 返回自定义生命周期
+
+3. 执行 bootstrap 生命周期
+
+4. 等到 unmountAllPromise 完毕后，执行 mount 生命周期，完成渲染
+
    - beforeUnmount
    - 子应用生命周期 mount
    - 将当前沙箱置为 active
@@ -724,12 +767,13 @@ appsToLoad.push(app);
 
 #### 卸载
 
-1. 执行自定义 unmount
-   - beforeUnmount
-   - 子应用的 unmount
-   - 恢复 global 状态，将当前的沙箱置为 inactive
-   - afterUnmount
-   - 清空所渲染
+执行卸载生命周期
+
+- beforeUnmount
+- 子应用的 unmount
+- 恢复 global 状态，将当前的沙箱置为 inactive
+- afterUnmount
+- 清除 DOM 区域的 template
 
 #### CSS 沙箱
 
@@ -778,6 +822,10 @@ function (window){
 
 ### wujie
 
+1. 使用 iframe 做为 JS 沙箱，来解决 JS 沙箱性能的问题
+2. 使用 web-component 来隔绝各个应用
+3. 应用级别的 keep-alive
+
 ## 打包工具
 
 webpack
@@ -823,6 +871,165 @@ file string => module => AST(dependence 分析) => module
 #### 热更新
 
 watch 文件变化，根据变化的文件，再走一次 bundle 流程，当 bundle 完后，通过 ws 通知浏览器获取新的打包文件
+
+1. 启动时，dev server 通过启动一个服务
+
+   - 提供两种服务，一个是 HTTP 服务，返回静态资源，二是 Socket 服务；而是向前端插入 Socket 代码，可以和浏览器通信
+   - 向模块注入 createModuleHotObject 函数，创建 Module 时，会进行调用
+
+   ```js
+   module.hot = createModuleHotObject();
+
+   createModuleHotObject = () => {
+     var hot = {
+       _requireSelf: function () {
+         currentParents = me.parents.slice();
+         currentChildModule = _main ? undefined : moduleId;
+         __webpack_require__(moduleId);
+       },
+
+       accept() {},
+
+       check() {},
+     };
+
+     return hot;
+   };
+   ```
+
+2. webpack 监听文件修改，当文件修改时，触发从新编译
+3. webpack 监听编译完成，向浏览器通过 socket 发送 hash 事件
+4. 浏览器接收到推送，调用 hotCheck，向服务端获取补丁文件，根据 hash -> hash.json -> hash.js
+5. 模块替换
+
+   - 根据 module id 找到旧模块 cache，删除掉。并删除 children 中的依赖(parents)
+
+   ```js
+   delete __webpack_require__.c[moduleId];
+   ```
+
+   - 加载新的模块，写入 cache
+
+   ```js
+   outdatedSelfAcceptedModules.push({
+     module: outdatedModuleId,
+     require: module.hot._requireSelf, // 调用此方法，会调用一次 __webpack_require__(moduleId);
+     errorHandler: module.hot._selfAccepted,
+   });
+
+   // 修改 module
+   __webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
+   ```
+
+#### react 热更新（react-refresh）
+
+可以实现组件级别的刷新，且可以保存原组件的状态
+
+- webpack 的 HRM，hot-update.js
+- react-refresh
+- react-refresh-webpack-plugin
+- react reconciler
+
+1. 在获取 hot-update.js 中，有段代码 `__webpack_require__.$Refresh$.register(_c, "Home");`，调用的是 react-refresh 中的 register
+
+   ```js
+   register(Home, 'home');
+   // register 向 allFamiliesByID 中存储组件，如果组件不存在，则存储，如果组件存在，则插入 pendingUpdates
+   // pendingUpdates = [ [{ current: Home },Home] ]
+   ```
+
+2. 在 hot-update.js 中，$ReactRefreshModuleRuntime$() -> executeRuntime() 方法
+
+   ```js
+   // executeRuntime 方法中
+   function executeRuntime() {
+     if (isReactRefreshBoundary(moduleExports)) {
+       enqueueUpdate(); // 局部刷新
+     } else {
+       webpackHot.invalidate(); // 全局刷新
+     }
+   }
+   ```
+
+3. enqueueUpdate 最终调用的是 react-refresh performReactRefresh 方法
+
+   ```js
+    function performReactRefresh(){
+     updates.forEach(([family, nextType]) => {
+       const prevType = family.current;
+
+       updatedFamiliesByType.set(prevType, family); // WeakMap
+       updatedFamiliesByType.set(nextType, family);
+
+       family.current = nextType;
+
+       if (canPreserveStateBetween(prevType, nextType)) {
+         updatedFamilies.add(family);
+       } else {
+         staleFamilies.add(family);
+       }
+     });
+
+     mountedRootsSnapshot.forEach(root => {
+       ...
+
+       helpers.scheduleRefresh(root, update); // root即为 filerRootNode
+
+       ...
+     });
+    }
+   ```
+
+4. reconciler 的 scheduleRefresh 调用 scheduleFibersWithFamiliesRecursively，scheduleFibersWithFamiliesRecursively 内会根据 updatedFamilies 和 staleFamilies 找到对应的 Fiber
+
+   ```js
+   flushSync(() => {
+     scheduleFibersWithFamiliesRecursively(
+       root.current,
+       updatedFamilies,
+       staleFamilies
+     );
+   });
+   ```
+
+5. 最终调用 `scheduleUpdateOnFiber(_root, fiber, SyncLane, NoTimestamp);`
+
+6. 然后在 beginWork 中，创建 Fiber 时
+
+   ```js
+     function createWorkInProgress(){
+       ...
+
+       if (__DEV__) {
+         workInProgress._debugNeedsRemount = current._debugNeedsRemount;
+         switch (workInProgress.tag) {
+           case IndeterminateComponent:
+           case FunctionComponent:
+           case SimpleMemoComponent:
+             workInProgress.type = resolveFunctionForHotReloading(current.type);
+             break;
+
+             ...
+         }
+       }
+     }
+   ```
+
+7. resolveFunctionForHotReloading
+
+   ```js
+   // reconciler ReactFiberHotReloading.new.js
+   function resolveFunctionForHotReloading(){
+     ...
+     const family = resolveFamily(type); // resolveFamily 通过 setRefreshHandler 在 react-refresh写入
+     ...
+   }
+
+    // refresh ReactFreshRuntime.js
+   function resolveFamily(type) {
+     return updatedFamiliesByType.get(type);
+   }
+   ```
 
 ### vite
 
@@ -892,3 +1099,37 @@ JS：源代码 => AST => Ignition => 字节码 => 机器码（其中 Ignition �
    - 出现报警的跟进人
    - 每周的报警分析
    - 分析阈值的合理性
+
+## npm、yarn、pnpm
+
+扁平化
+
+advantages
+
+1. 层级较浅
+2. 重复复用包，减少包的下载
+
+disadvantages
+
+1. 层级不稳定
+2. 扁平化算法的时间成本
+3. 幽灵依赖
+
+pnpm
+
+1. 下载速度快
+2. 高效缓存，磁盘利用率：针对同一个版本的包，只会存储一份，后续使用「硬链接」；针对不同版本的包，会尽可能复用之前的版本代码
+3. 解决幽灵依赖：
+
+   - 将文件下载安装于 node_modules/.pnpm 中，在 node_modules 下只会有当前 packages.json 中声明的包，且使用「软连接」链接到 node_modules/.pnpm
+   - node_modules/.pnpm 下的包有一定的结构性
+
+     ```txt
+     .pnpm
+      - koa2
+        - node_modules
+          - koa-compose 「软链接」到 .pnpm/koa-compose
+      - koa-compose
+     ```
+
+4. 支持 monorepo
