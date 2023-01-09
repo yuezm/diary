@@ -501,15 +501,10 @@ flushPassiveEffects -> flushPassiveEffectsImpl
    - 在 updateFunctionComponent 内，还会根据 Fiber.dependencies.lanes, renderLanes，对比是否需要更新，如果需要更新，则会修改更新标识，并删除 Fiber.dependencies.firstContext
    - 如果修改了更新标识 didReceiveUpdate = true，则无法复用当前 Fiber，进入 reconcileChildren
 
-4. 如何使用 Context.Provider，使用 valueStack （栈的存储结构）
+## redux
 
-    - 在 beginWork 时，将 _currentValue 推入栈中，并将当前的值赋予_currentValue
-    - 在 completeWork 时，将 _currentValue 赋予从栈顶的值，并退栈
-
-  以栈的数据结构，来保证
-
-- 组件必须处于 context.Provider 内才可以获取到当前 Provider 的数据
-- 如果存在多个Provider，则读取的是最近的那个Provider的数据
+1. 中心化的结构，以一个大对象存储所有的数据，无法拆解领域
+2. 支持异步的话，需要另外的手段，例如 dva（dispatch 满天飞）
 
 ## recoil
 
@@ -550,63 +545,6 @@ flushPassiveEffects -> flushPassiveEffectsImpl
    sendEndOfBatchNotifications 中派发 storeState.nodeTransactionSubscriptions 的更新
    次吃由于在调用 useRecoilValue(recoilState) 时已经向 state.nodeToComponentSubscriptions 注册了事件，此时收到更新后，执行回调函数
    回调函数中，再次判断是否需要更新（newValue === oldValue?），如果值不一致，则执行更新（通过 setState([])）
-
-## redux和 react-redux
-
-### redux
-
-redux 是一个纯粹的状态管理库
-
-1. 单一数据源，redux state 是一个大对象存储的
-2. state 是只读的，无法被开发者私自修改
-3. 可以通过 dispatch + reducer 进行修改 state
-
-defect
-
-1. 中心化的结构，以一个大对象存储所有的数据，无法拆解领域
-2. 支持异步的话，需要另外的手段，例如 dva（dispatch 满天飞）
-
-### react-redux
-
-#### Subscription
-
-react-redux 很重要的对象
-
-1. 可收集依赖，以双向环形链表存储于 Listener 对象中
-2. 可派发更新，对 Listener 搜集的依赖，派发更新
-3. 可向 store(redux) 或者其他 Subscription 注册，当 store 或其他Subscription发生变化时，触发回调
-
-#### Provider
-
-1. 创建顶层的 Subscription 对象，监听 store 变化，当 store 变化时 notify
-2. 创建 Context，将变量存入其中，方便后续访问，store，subscription
-
-该 Context 可以自身传入，也可以使用默认的 ReactReduxContext
-
-#### connect
-
-1. 接收 mapStateToProps，mapDispatchToProps传参，并对参数处理，最终成为一个selector的形式，简单来说 (store.getState(), wrapperProps) => props;
-2. 通过执行 useSyncExternalStore hooks，当值发生改变时，subscribeForReact 回调会被调用
-
-    ```js
-      actualChildProps = useSyncExternalStore(
-        subscribeForReact,
-        actualChildPropsSelector,
-        getServerState
-          ? () => childPropsSelector(getServerState(), wrapperProps)
-          : actualChildPropsSelector
-     )
-    ```
-
-3. 调用 subscribeForReact -> subscribeUpdates
-
-    ```js
-    // 1. 创建 Subscribition 对象，在组件中，如果父组件传入 store 对象，则向该 sotre 订阅变化；否则向 Context(ReactReduxContext)的 Subscription 订阅变化
-    // 2. 当 store 更新时，直接通知当前 Subscription 或者由 Context 的根 Subscription 通知当前的 Subscription
-    // 3. 当接收到变化时，需比较新旧props是否相同，如果不同则强中更新当前组件；如果相同则继续派发更新，让子组件判断是否需要更新
-    ```
-
-4. 将 actualChildProps 传给子组件
 
 ## React 16 -> 17 -> 18
 
@@ -731,8 +669,15 @@ island 是一种性能优化的方式，将需要 hydrate 和静态组件拆分�
 
 ## 微前端
 
+
 1. 优势
+    - 解决巨石应用的开发问题
+    - 解决巨石应用的发版问题
+    - 解决多技术栈的问题
+
 2. 目前普遍的实现
+
+
 3. qiankun
 
 ### qiankun
@@ -748,42 +693,13 @@ island 是一种性能优化的方式，将需要 hydrate 和静态组件拆分�
 
 #### 注册
 
-调用 qiankun API registerMicroApps => single-sap 的 registerApplication
+调用 API
 
-注册时，并声明了当前的 loadApp 方法
+#### 匹配
 
-```js
-function registerMicroApps() {
-  registerApplication({
-    name: App_Name,
-    app: () => {
-      // qiankun 的 loadApp 方法
-    },
-  });
-}
-```
+single-spa 对事件劫持（hashchange、popstate），在 url 变化时，调用 getAppChanges() 对比所注册的 apps（activeRule -> activeWhen），获取当前需要进行操作的子应用，例如对于 load
 
-#### 匹配 & 加载
-
-```js
-url change
-
-reroute
-  - getAppChanges()
-  - performAppChanges()
-      - unmountAllPromise
-      - toLoadPromise -> loadApp
-      - tryToBootstrapAndMount
-        - bootstrap
-        - unmountAllPromise 执行完毕
-        - mount
-
-```
-
-single-spa 对事件劫持（hashchange、popstate），在 url 变化时，调用 getAppChanges() 对比所注册的 apps「activeRule -> activeWhen 与当前 URL 对比」、「当前 app 的状态」，来获取当前需要进行操作的子应用，例如
-
-- 对于 load，如果 URL 匹配，则进入 load 流程（已 mount 的子应用会进入 unMount 流程），则进入 lappsToLoad 数组
-- 对于 unMount，如果 URL 不匹配，且当前处于 MOUNTED 状态，则进入 appsToUnmount 数组
+如果 URL 匹配，则进入 load 流程（已 mount 的子应用会进入 unMount 流程），则进入 load 流程
 
 ```js
 const appsToLoad = [];
@@ -795,32 +711,18 @@ appsToLoad.push(app);
 // appsToMount: appsToMount
 ```
 
-single App 等待 app 加载完毕后，就会去执行各个阶段的生命周期 performAppChanges()
+#### 加载
 
-1. 以 promise 方式执行所有的卸载事件，unload,unmount，联合为一个 Promise，unmountAllPromise
+根据 single-spa 调用链，最终调用 loadApp，最终会返回一个包含各个生命周期的对象
 
-2. 对于 appsToLoad ，是会调用 toLoadPromise(app);
-
-   single spa 根据 appsToLoad 调用 loadApps 去加载，最终调用的是 app.loadApp 的方法
-
-   single spa loadApps => app.loadApp => qiankun loadApp，会返回一个包含各个生命周期的对象，根据 single-spa 调用链的生命周期进行调用
-
-   1. 下载匹配的子应用 entry，并序列化（import-html-entry 会将模板拆分）
-
-      - template： 模板
-      - script：外部的 script
-      - style：外部的样式
-      - execScripts：js entry
-
-   2. 将 template 渲染至 DOM
-   3. 创建沙箱（后续运行时会传入沙箱实例）
-   4. 获取 js entry 的生命周期函数
-   5. 返回自定义生命周期
-
-3. 执行 bootstrap 生命周期
-
-4. 等到 unmountAllPromise 完毕后，执行 mount 生命周期，完成渲染
-
+1. 下载匹配的子应用 entry，并序列化（import-html-entry 会将模板拆分）
+   - template： 模板
+   - script：外部的 script
+   - style：外部的样式
+   - execScripts：js entry
+2. 创建沙箱（后续运行时会传入沙箱实例）
+3. 获取子应用的生命周期函数
+4. 执行自定义 mount
    - beforeUnmount
    - 子应用生命周期 mount
    - 将当前沙箱置为 active
@@ -829,13 +731,12 @@ single App 等待 app 加载完毕后，就会去执行各个阶段的生命周�
 
 #### 卸载
 
-执行卸载生命周期
-
-- beforeUnmount
-- 子应用的 unmount
-- 恢复 global 状态，将当前的沙箱置为 inactive
-- afterUnmount
-- 清除 DOM 区域的 template
+1. 执行自定义 unmount
+   - beforeUnmount
+   - 子应用的 unmount
+   - 恢复 global 状态，将当前的沙箱置为 inactive
+   - afterUnmount
+   - 清空所渲染
 
 #### CSS 沙箱
 
@@ -859,7 +760,7 @@ SnapshotSandbox 在恢复时，需要比对所有的 key，效率较低，Legacy
 
 以上两种沙箱只能运行于单例模式，本质也是操作 window，如果同时存在两个子应用则无法满足
 
-ProxySandbox 利用 Proxy 将 window 赋值出来，称为 fakeWindow，即每个子应用可对应一个 fakeWindow
+ProxySandbox 利用 Proxy 将 window 赋值出来，称为 fakeWindow，即每个自应用可对应一个 fakeWindow
 
 写数据时
 
@@ -879,14 +780,9 @@ function (window){
   // 以下函数运行的时候，都是参数传递的 window
 }
 ```
-
 ### micro app
 
 ### wujie
-
-1. 使用 iframe 做为 JS 沙箱，来解决 JS 沙箱性能的问题
-2. 使用 web-component 来隔绝各个应用
-3. 应用级别的 keep-alive
 
 ## 打包工具
 
@@ -934,165 +830,6 @@ file string => module => AST(dependence 分析) => module
 
 watch 文件变化，根据变化的文件，再走一次 bundle 流程，当 bundle 完后，通过 ws 通知浏览器获取新的打包文件
 
-1. 启动时，dev server 通过启动一个服务
-
-   - 提供两种服务，一个是 HTTP 服务，返回静态资源，二是 Socket 服务；向前端插入 Socket 代码，可以和浏览器通信
-   - 向模块注入 createModuleHotObject 函数，创建 Module 时，会进行调用
-
-   ```js
-   module.hot = createModuleHotObject();
-
-   createModuleHotObject = () => {
-     var hot = {
-       _requireSelf: function () {
-         currentParents = me.parents.slice();
-         currentChildModule = _main ? undefined : moduleId;
-         __webpack_require__(moduleId);
-       },
-
-       accept() {},
-
-       check() {},
-     };
-
-     return hot;
-   };
-   ```
-
-2. webpack 监听文件修改，当文件修改时，触发从新编译
-3. webpack 监听编译完成，向浏览器通过 socket 发送 hash 事件
-4. 浏览器接收到推送，调用 hotCheck，向服务端获取补丁文件，根据 hash -> hash.json -> hash.js
-5. 模块替换
-
-   - 根据 module id 找到旧模块 cache，删除掉。并删除 children 中的依赖(parents)
-
-   ```js
-   delete __webpack_require__.c[moduleId];
-   ```
-
-   - 加载新的模块，写入 cache
-
-   ```js
-   outdatedSelfAcceptedModules.push({
-     module: outdatedModuleId,
-     require: module.hot._requireSelf, // 调用此方法，会调用一次 __webpack_require__(moduleId);
-     errorHandler: module.hot._selfAccepted,
-   });
-
-   // 修改 module
-   __webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
-   ```
-
-#### react 热更新（react-refresh）
-
-可以实现组件级别的刷新，且可以保存原组件的状态
-
-- webpack 的 HRM，hot-update.js
-- react-refresh
-- react-refresh-webpack-plugin
-- react reconciler
-
-1. 在获取 hot-update.js 中，有段代码 `__webpack_require__.$Refresh$.register(_c, "Home");`，调用的是 react-refresh 中的 register
-
-   ```js
-   register(Home, 'home');
-   // register 向 allFamiliesByID 中存储组件，如果组件不存在，则存储，如果组件存在，则插入 pendingUpdates
-   // pendingUpdates = [ [{ current: Home },Home] ]
-   ```
-
-2. 在 hot-update.js 中，$ReactRefreshModuleRuntime$() -> executeRuntime() 方法
-
-   ```js
-   // executeRuntime 方法中
-   function executeRuntime() {
-     if (isReactRefreshBoundary(moduleExports)) {
-       enqueueUpdate(); // 局部刷新
-     } else {
-       webpackHot.invalidate(); // 全局刷新
-     }
-   }
-   ```
-
-3. enqueueUpdate 最终调用的是 react-refresh performReactRefresh 方法
-
-   ```js
-    function performReactRefresh(){
-     updates.forEach(([family, nextType]) => {
-       const prevType = family.current;
-
-       updatedFamiliesByType.set(prevType, family); // WeakMap
-       updatedFamiliesByType.set(nextType, family);
-
-       family.current = nextType;
-
-       if (canPreserveStateBetween(prevType, nextType)) {
-         updatedFamilies.add(family);
-       } else {
-         staleFamilies.add(family);
-       }
-     });
-
-     mountedRootsSnapshot.forEach(root => {
-       ...
-
-       helpers.scheduleRefresh(root, update); // root即为 filerRootNode
-
-       ...
-     });
-    }
-   ```
-
-4. reconciler 的 scheduleRefresh 调用 scheduleFibersWithFamiliesRecursively，scheduleFibersWithFamiliesRecursively 内会根据 updatedFamilies 和 staleFamilies 找到对应的 Fiber
-
-   ```js
-   flushSync(() => {
-     scheduleFibersWithFamiliesRecursively(
-       root.current,
-       updatedFamilies,
-       staleFamilies
-     );
-   });
-   ```
-
-5. 最终调用 `scheduleUpdateOnFiber(_root, fiber, SyncLane, NoTimestamp);`
-
-6. 然后在 beginWork 中，创建 Fiber 时
-
-   ```js
-     function createWorkInProgress(){
-       ...
-
-       if (__DEV__) {
-         workInProgress._debugNeedsRemount = current._debugNeedsRemount;
-         switch (workInProgress.tag) {
-           case IndeterminateComponent:
-           case FunctionComponent:
-           case SimpleMemoComponent:
-             workInProgress.type = resolveFunctionForHotReloading(current.type);
-             break;
-
-             ...
-         }
-       }
-     }
-   ```
-
-7. resolveFunctionForHotReloading
-
-   ```js
-   // reconciler ReactFiberHotReloading.new.js
-   function resolveFunctionForHotReloading(){
-     ...
-     const family = resolveFamily(type); // resolveFamily 通过 setRefreshHandler 在 react-refresh写入
-     ...
-   }
-
-    // refresh ReactFreshRuntime.js
-   function resolveFamily(type) {
-     return updatedFamiliesByType.get(type);
-   }
-   ```
-
 ### vite
 
 开发环境
@@ -1122,7 +859,6 @@ watch 文件变化，通知浏览器去加载变化的文件，然后自动会�
    - 利用 turbo 实现并行的使用多个核心
    - 缓存，对函数的调度运行结果进行缓存，避免二次计算
 3. Lazy bundling，按需打包（dev）
-
 ## PWA & Service Worker
 
 what、why、how
@@ -1130,7 +866,7 @@ what、why、how
 ## 浏览器 JS 代码执行
 
 编译语言：源代码 => AST => 字节码 => 二进制代码
-JS：源代码 => AST => Ignition => 字节码 => 机器码（其中 Ignition 会收集代码的执行过程，发现如果有热代码，则使用 Turbofan 编译为机器码）
+JS：源代码 => AST => Ignition => 字节码 => 机器码（其中 Ignition 会手机代码的执行过程，发现如果有热代码，则使用 Turbofan 编译为机器码）
 
 为什么需要使用字节码？原来架构中是没有字节码的，直接将 AST 转化为机器码执行，但是随着手机的流行，V8 需要大量的内存去存储转换后的机器码，手机内存可能没这么大，所以对架构进行了改进。相对来说，字节码比机器码占用空间少很多
 
@@ -1161,78 +897,3 @@ JS：源代码 => AST => Ignition => 字节码 => 机器码（其中 Ignition �
    - 出现报警的跟进人
    - 每周的报警分析
    - 分析阈值的合理性
-
-## npm、yarn、pnpm
-
-扁平化
-
-advantages
-
-1. 层级较浅
-2. 重复复用包，减少包的下载
-
-disadvantages
-
-1. 层级不稳定
-2. 扁平化算法的时间成本
-3. 幽灵依赖
-
-pnpm
-
-1. 下载速度快
-2. 高效缓存，磁盘利用率：针对同一个版本的包，只会存储一份，后续使用「硬链接」；针对不同版本的包，会尽可能复用之前的版本代码
-3. 解决幽灵依赖：
-
-   - 将文件下载安装于 node_modules/.pnpm 中，在 node_modules 下只会有当前 packages.json 中声明的包，且使用「软连接」链接到 node_modules/.pnpm
-   - node_modules/.pnpm 下的包有一定的结构性
-
-     ```txt
-     .pnpm
-      - koa2
-        - node_modules
-          - koa-compose 「软链接」到 .pnpm/koa-compose
-      - koa-compose
-     ```
-
-4. 支持 monorepo
-
-## diff 算法
-
-### vue
-
-1. 双端比较
-   通过 oldStart，oldEnd，newStart，newEnd 来比较
-
-   1. 比较出现相等，则按照比较的交换位置
-   2. 比较无法相等
-
-      - 如果 new key 可以在 old 中找到，则人工构建一个相等出来（把 old key 中的节点移动 oldStart 去，构造出 oldStart === newStart）
-      - 否则新增节点
-
-   3. 最后判断是否存在新增和删除的节点
-
-   ```js
-   // [5,1,2,3,4,6] => [1,2,3,4] 不太好处理如下情况，但lastIndex算法较好处理
-   ```
-
-2. 前缀后缀（插头去尾） + lastIndex + 最大增子序列
-
-   1. 去除可复用的前缀和后缀
-   2. 删除 old 中存在，但 new 中不存在的节点
-   3. 通过 lastIndex 算法，判断节点是否需要移动
-   4. 如果需要移动，则使用最大增子序列算法，算出无需要移动的节点
-      - 需要移动：遍历新的节点；新增节点则直接添加；否则如果当前节点索引为 lis，则无需移动；否则将节点移动到此
-      - 无需移动：判断下是否存在新增节点
-
-### react
-
-1. 第一次遍历，掐头
-2. lastPlacedIndex
-
-   通过 lastPlacedIndex 来计算老的节点是否需要移动
-
-   ```js
-   // [1,2,3,4] => [4,1,2,3] // 不太好处理如下情况，但双端比较较好处理
-   ```
-
-3. 遍历一次，删除无用节点
