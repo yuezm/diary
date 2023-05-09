@@ -1236,3 +1236,13 @@ pnpm
    ```
 
 3. 遍历一次，删除无用节点
+
+## 简单编译器
+
+### tokenizer
+
+### parser
+
+### transformer
+
+### generator
